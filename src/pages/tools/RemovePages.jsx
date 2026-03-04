@@ -3,6 +3,7 @@ import { PDFDocument } from 'pdf-lib';
 import ToolPageLayout, { ProcessButton, DownloadBanner } from '../../components/shared/ToolPageLayout';
 import FileDropZone from '../../components/shared/FileDropZone';
 import { fileToArrayBuffer, formatFileSize, renderAllPages, downloadPdf } from '../../utils/pdfUtils';
+import SEO from '../../components/SEO';
 import './ToolPage.css';
 
 export default function RemovePages() {
@@ -69,6 +70,17 @@ export default function RemovePages() {
         'Click Remove and download the result',
       ]}
     >
+      <SEO 
+        title="Remove Pages from PDF Online Free — FileNinja"
+        description="Delete unwanted pages from your PDF file instantly. 100% free, private, and works in your browser. No file upload required."
+        path="/remove-pages"
+        faq={[
+          { question: "Is removing PDF pages free on FileNinja?", answer: "Yes, it is completely free with no registration or limits." },
+          { question: "Are my files uploaded to a server?", answer: "No. FileNinja processes all files directly in your browser. Your files never leave your device." },
+          { question: "Can I remove all pages from a PDF?", answer: "No, a PDF must have at least one page. You cannot remove all pages using this tool." },
+          { question: "How safe is it to use this tool?", answer: "It's highly safe because the processing is local. Your sensitive documents never touch our servers." }
+        ]}
+      />
       <div className="tool-layout">
         {!file ? (
           <FileDropZone onFiles={handleFile} label="Drop a PDF to remove pages" />

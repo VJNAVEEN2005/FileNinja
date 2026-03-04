@@ -3,6 +3,7 @@ import { PDFDocument } from 'pdf-lib';
 import ToolPageLayout, { ProcessButton, DownloadBanner } from '../../components/shared/ToolPageLayout';
 import FileDropZone from '../../components/shared/FileDropZone';
 import { fileToArrayBuffer, formatFileSize, renderAllPages, downloadPdf, parsePageRanges } from '../../utils/pdfUtils';
+import SEO from '../../components/SEO';
 import './ToolPage.css';
 
 export default function ExtractPages() {
@@ -80,6 +81,17 @@ export default function ExtractPages() {
         'Click Extract and download the new PDF',
       ]}
     >
+      <SEO 
+        title="Extract PDF Pages Online — Free & Private"
+        description="Extract specific pages from your PDF file into a new document. 100% free, private, and works in your browser. No sign-up needed."
+        path="/extract-pages"
+        faq={[
+          { question: "Is extracting PDF pages free on FileNinja?", answer: "Yes, it is completely free with no hidden charges or limits." },
+          { question: "Can I extract multiple non-consecutive pages?", answer: "Yes, you can click to select specific pages or enter a range like '1, 3, 5-7' to extract exactly what you need." },
+          { question: "Does extracting pages change the original file?", answer: "No, it creates a new PDF document containing only the pages you selected. Your original file remains unchanged." },
+          { question: "Is my privacy protected?", answer: "Yes, FileNinja is privacy-first. All extraction happens on your device; we never see your files." }
+        ]}
+      />
       <div className="tool-layout">
         {!file ? (
           <FileDropZone onFiles={handleFile} label="Drop a PDF to extract pages" />

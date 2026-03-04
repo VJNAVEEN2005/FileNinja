@@ -3,6 +3,7 @@ import { PDFDocument, degrees } from 'pdf-lib';
 import ToolPageLayout, { ProcessButton, DownloadBanner } from '../../components/shared/ToolPageLayout';
 import FileDropZone from '../../components/shared/FileDropZone';
 import { fileToArrayBuffer, formatFileSize, downloadPdf, renderAllPages } from '../../utils/pdfUtils';
+import SEO from '../../components/SEO';
 import './ToolPage.css';
 
 export default function RotatePDF() {
@@ -98,6 +99,17 @@ export default function RotatePDF() {
         'Click Apply Rotation and download your file',
       ]}
     >
+      <SEO 
+        title="Rotate PDF Online Free — Free & Private"
+        description="Rotate PDF pages individually or all at once. Save orientation permanently. 100% free, private, and works entirely in your browser."
+        path="/rotate-pdf"
+        faq={[
+          { question: "Is rotating PDFs free on FileNinja?", answer: "Yes, it is completely free with no registration or limits." },
+          { question: "Can I rotate only specific pages in a PDF?", answer: "Yes, FileNinja allows you to select and rotate individual pages or use the global rotation buttons to rotate the entire document." },
+          { question: "Will my rotated file be saved securely?", answer: "Yes. All processing happens in your browser. Your file is never uploaded and the rotated version is generated locally on your device." },
+          { question: "What rotation angles are supported?", answer: "You can rotate pages in 90-degree increments (90°, 180°, 270°) both clockwise and counter-clockwise." }
+        ]}
+      />
       <div className="tool-layout">
         {!file ? (
           <FileDropZone onFiles={handleFile} label="Drop a PDF to rotate" />

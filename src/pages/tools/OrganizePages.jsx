@@ -3,6 +3,7 @@ import { PDFDocument, degrees } from 'pdf-lib';
 import ToolPageLayout, { ProcessButton, DownloadBanner } from '../../components/shared/ToolPageLayout';
 import FileDropZone from '../../components/shared/FileDropZone';
 import { fileToArrayBuffer, formatFileSize, downloadPdf, renderAllPages } from '../../utils/pdfUtils';
+import SEO from '../../components/SEO';
 import './ToolPage.css';
 
 export default function OrganizePages() {
@@ -105,6 +106,17 @@ export default function OrganizePages() {
         'Click Apply Changes and download',
       ]}
     >
+      <SEO 
+        title="Organize PDF Online — Free & Private"
+        description="Reorder, delete, or rotate pages in your PDF. Drag-and-drop organization for your documents. 100% free, private, and works in your browser."
+        path="/organize-pages"
+        faq={[
+          { question: "Is organizing PDFs free on FileNinja?", answer: "Yes, it is completely free with no registration or hidden fees." },
+          { question: "Can I reorder pages by dragging?", answer: "Yes, the interface allows you to simply drag and drop thumbnails to rearrange your PDF pages." },
+          { question: "Can I delete pages while organizing?", answer: "Yes, each page thumbnail has a delete button to remove it from the final document." },
+          { question: "Are my files uploaded?", answer: "No. All organization happens within your browser. Your data remains private and secure on your device." }
+        ]}
+      />
       <div className="tool-layout">
         {!file ? (
           <FileDropZone onFiles={handleFile} label="Drop a PDF to organize" />

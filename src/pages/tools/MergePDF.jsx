@@ -5,6 +5,7 @@ import { saveAs } from 'file-saver';
 import ToolPageLayout, { ProcessButton, DownloadBanner } from '../../components/shared/ToolPageLayout';
 import FileDropZone, { FileItem } from '../../components/shared/FileDropZone';
 import { fileToArrayBuffer, formatFileSize, downloadPdf } from '../../utils/pdfUtils';
+import SEO from '../../components/SEO';
 import './ToolPage.css';
 
 export default function MergePDF() {
@@ -86,6 +87,17 @@ export default function MergePDF() {
         'Click Merge and download the result',
       ]}
     >
+      <SEO 
+        title="Merge PDF Online — Free & No Upload"
+        description="Combine multiple PDF files into one. 100% free, private, and works entirely in your browser. No sign-up or file limits."
+        path="/merge-pdf"
+        faq={[
+          { question: "Is merging PDF files free on FileNinja?", answer: "Yes, it is completely free with no hidden charges or premium tiers." },
+          { question: "Are my files uploaded to a server?", answer: "No. FileNinja processes all files directly in your browser. Your files never leave your device." },
+          { question: "Is there a limit to how many PDFs I can merge?", answer: "No, you can merge as many PDF files as you need without any artificial restrictions." },
+          { question: "Can I reorder files before merging?", answer: "Yes, you can simply drag and drop the file rows to set your preferred order before clicking the Merge button." }
+        ]}
+      />
       {!result ? (
         <div className="tool-layout">
           <FileDropZone

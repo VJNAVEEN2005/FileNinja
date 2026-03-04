@@ -5,6 +5,7 @@ import { saveAs } from 'file-saver';
 import ToolPageLayout, { ProcessButton, DownloadBanner } from '../../components/shared/ToolPageLayout';
 import FileDropZone from '../../components/shared/FileDropZone';
 import { fileToArrayBuffer, formatFileSize, renderAllPages, parsePageRanges } from '../../utils/pdfUtils';
+import SEO from '../../components/SEO';
 import './ToolPage.css';
 
 const MODES = [
@@ -116,6 +117,17 @@ export default function SplitPDF() {
         'Click Split and download the output',
       ]}
     >
+      <SEO 
+        title="Split PDF Online — Free & Private"
+        description="Split PDF pages instantly. Extract ranges, split every N pages, or separate odd/even pages. 100% free, private, and works in your browser."
+        path="/split-pdf"
+        faq={[
+          { question: "Is splitting PDF files free on FileNinja?", answer: "Yes, it is completely free with no hidden charges or limits." },
+          { question: "Can I split a PDF into individual pages?", answer: "Yes, by choosing the 'Every N pages' mode and setting N to 1, you can split the entire document into individual pages." },
+          { question: "Are my files safe when splitting?", answer: "Absolutely. FileNinja processes everything locally in your browser. Your files are never uploaded to any server." },
+          { question: "Does it work with password-protected PDFs?", answer: "Currently, you need to provide an unprotected PDF for processing. Support for password-protected files is coming soon." }
+        ]}
+      />
       <div className="tool-layout">
         {!file ? (
           <FileDropZone onFiles={handleFile} label="Drop a PDF to split" />
