@@ -47,17 +47,13 @@
 }
 
 .navbar__logo-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   width: 36px;
   height: 36px;
+  padding: 4px;
+  background: white;
   border-radius: var(--radius-sm);
-  background: var(--accent-gradient);
-  color: white;
-  font-size: 0.85rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
+  box-shadow: var(--shadow-sm);
+  object-fit: contain;
 }
 
 .navbar__logo-text {

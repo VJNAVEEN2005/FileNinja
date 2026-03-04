@@ -25,7 +25,7 @@ export default function Navbar() {
     <nav className={`navbar ${scrolled ? 'navbar--scrolled' : ''}`}>
       <div className="navbar__inner container">
         <Link to="/" className="navbar__logo" onClick={() => setMobileOpen(false)}>
-          <span className="navbar__logo-icon">FN</span>
+          <img src="/favicon.png" alt="FileNinja" className="navbar__logo-icon" />
           <span className="navbar__logo-text">FileNinja</span>
         </Link>
 
