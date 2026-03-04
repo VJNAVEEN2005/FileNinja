@@ -230,6 +230,7 @@
   display: flex;
   justify-content: center;
   padding-top: 15vh;
+  padding-bottom: var(--safe-bottom);
   animation: modalFadeIn 0.3s ease;
 }
 
@@ -242,6 +243,7 @@
   width: 100%;
   max-width: 680px;
   padding: 0 24px;
+  padding-bottom: max(24px, var(--safe-bottom));
   animation: modalSlideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -282,9 +284,21 @@
 
 @media (max-width: 768px) {
   .search-floating-btn {
-    bottom: 24px;
-    right: 24px;
+    bottom: calc(24px + var(--safe-bottom));
+    right: max(24px, var(--safe-right));
     width: 56px;
     height: 56px;
+  }
+
+  .search-modal-overlay {
+    padding-top: 60px;
+  }
+
+  .search-container--global .search-input {
+    font-size: 1.15rem;
+  }
+
+  .search-container--global .search-input-wrapper {
+    height: 64px;
   }
 }

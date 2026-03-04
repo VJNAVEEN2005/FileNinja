@@ -160,13 +160,14 @@ export default function Search({ isGlobal = false, isOpen: externalIsOpen, onClo
         </svg>
         <input
           ref={inputRef}
-          type="text"
+          type="search"
           className="search-input"
           placeholder="Search tools (e.g. merge, word, ai)..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={() => !isGlobal && query.trim().length > 0 && setInternalIsOpen(true)}
+          enterKeyHint="search"
         />
         <div className="search-shortcut">
           <span>Ctrl</span>
