@@ -1,0 +1,91 @@
+.tool-grid-section {
+  padding: 100px 0 80px;
+}
+
+.tool-grid__header {
+  margin-bottom: 48px;
+}
+
+/* Filters */
+.tool-grid__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 40px;
+}
+
+.tool-grid__filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.tool-grid__filter:hover {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.tool-grid__filter--active {
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+  color: var(--text-inverse);
+}
+
+.tool-grid__filter--active:hover {
+  color: var(--text-inverse);
+}
+
+.tool-grid__filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  background: rgba(0,0,0,0.06);
+}
+
+.tool-grid__filter--active .tool-grid__filter-count {
+  background: rgba(255,255,255,0.2);
+}
+
+/* Grid */
+.tool-grid__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .tool-grid-section {
+    padding: 60px 0 40px;
+  }
+
+  .tool-grid__filters {
+    gap: 6px;
+    margin-bottom: 28px;
+  }
+
+  .tool-grid__filter {
+    padding: 6px 14px;
+    font-size: 0.8rem;
+  }
+
+  .tool-grid__grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
