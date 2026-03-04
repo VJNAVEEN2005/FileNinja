@@ -14,9 +14,6 @@ export default function Footer() {
               <span className="footer__logo-icon">FN</span>
               <span className="footer__logo-text">FileNinja</span>
             </Link>
-            <p className="footer__tagline">
-              Free, private, and powerful PDF tools that run entirely in your browser.
-            </p>
           </div>
 
           <div className="footer__columns">

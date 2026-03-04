@@ -7,7 +7,7 @@ export default function ToolCard({ tool }) {
 
   return (
     <Link
-      to={`/${tool.id}`}
+      to={`/tools/${tool.id}`}
       className="tool-card"
       style={{ '--card-accent': catColor }}
       aria-label={`${tool.name} tool`}
