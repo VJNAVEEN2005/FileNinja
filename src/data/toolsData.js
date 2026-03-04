@@ -1,15 +1,16 @@
 export const categories = [
     { id: 'all', label: 'All Tools' },
-    { id: 'organize', label: 'Organize', color: 'var(--cat-organize)' },
-    { id: 'optimize', label: 'Optimize', color: 'var(--cat-optimize)' },
-    { id: 'edit', label: 'Edit', color: 'var(--cat-edit)' },
-    { id: 'convert-to', label: 'Convert to PDF', color: 'var(--cat-convert-to)' },
-    { id: 'convert-from', label: 'Convert from PDF', color: 'var(--cat-convert-from)' },
-    { id: 'security', label: 'Security', color: 'var(--cat-security)' },
-    { id: 'ai', label: 'AI Tools', color: 'var(--cat-ai)' },
-    { id: 'forms', label: 'Forms', color: 'var(--cat-forms)' },
-    { id: 'batch', label: 'Batch', color: 'var(--cat-batch)' },
+    { id: 'organize', label: 'Organize', color: '#4A7CFF' },
+    { id: 'optimize', label: 'Optimize', color: '#22C997' },
+    { id: 'edit', label: 'Edit', color: '#FF6B4A' },
+    { id: 'convert-to', label: 'Convert to PDF', color: '#9B5CFF' },
+    { id: 'convert-from', label: 'Convert from PDF', color: '#FF4A8D' },
+    { id: 'security', label: 'Security', color: '#FFB020' },
+    { id: 'ai', label: 'AI Tools', color: '#00BCD4' },
+    { id: 'forms', label: 'Forms', color: '#7C6EF0' },
+    { id: 'batch', label: 'Batch', color: '#5C6BC0' },
 ];
+
 
 export const tools = [
     // ── Organize ──

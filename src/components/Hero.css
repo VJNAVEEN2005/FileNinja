@@ -5,7 +5,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  padding: 120px 0 80px;
+  padding: 60px 0 80px;
 }
 
 /* Decorative gradient orbs */
@@ -144,7 +144,7 @@
 /* Responsive */
 @media (max-width: 768px) {
   .hero {
-    padding: 100px 0 60px;
+    padding: 40px 0 60px;
     min-height: auto;
   }
 

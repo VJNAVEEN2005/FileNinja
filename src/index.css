@@ -72,6 +72,7 @@ body {
   background-color: var(--bg-base);
   line-height: 1.6;
   overflow-x: hidden;
+  padding-top: 68px; /* offset for fixed navbar */
 }
 
 /* Grain overlay */

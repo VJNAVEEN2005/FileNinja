@@ -1,0 +1,294 @@
+/* Shared CSS for all tool pages — imported by MergePDF, SplitPDF, RemovePages, ExtractPages */
+
+/* ─── Main tool layout ─── */
+.tool-layout {
+  max-width: 860px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ─── File info strip ─── */
+.tool-file-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+}
+
+.tool-file-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tool-file-meta {
+  font-size: 0.825rem;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.tool-file-change {
+  font-size: 0.825rem;
+  font-weight: 500;
+  color: var(--accent-coral);
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.tool-file-change:hover { opacity: 0.7; }
+
+/* ─── Generic section ─── */
+.tool-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tool-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tool-section__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tool-section__clear {
+  font-size: 0.825rem;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.tool-section__clear:hover { color: #e53e3e; }
+
+/* ─── File list ─── */
+.file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.file-list__item {
+  cursor: grab;
+}
+
+.file-list__item:active {
+  cursor: grabbing;
+}
+
+/* ─── Actions row ─── */
+.tool-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+}
+
+/* ─── Hint text ─── */
+.tool-hint {
+  font-size: 0.825rem;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+.tool-hint--warn {
+  color: #d97706;
+}
+
+/* ─── Mode tabs ─── */
+.mode-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mode-tab {
+  padding: 8px 18px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  background: var(--bg-elevated);
+}
+
+.mode-tab:hover {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.mode-tab--active {
+  color: var(--accent-coral);
+  border-color: var(--accent-coral);
+  background: rgba(255, 107, 74, 0.05);
+  font-weight: 600;
+}
+
+/* ─── Mode options ─── */
+.mode-options {
+  padding: 20px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+}
+
+.option-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.option-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.option-input {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 0.95rem;
+  font-family: var(--font-body);
+  color: var(--text-primary);
+  background: var(--bg-base);
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.option-input:focus {
+  border-color: var(--accent-coral);
+}
+
+.option-input--narrow {
+  width: 100px;
+}
+
+/* ─── Toggle buttons ─── */
+.toggle-row {
+  display: flex;
+  gap: 8px;
+}
+
+.toggle-btn {
+  padding: 8px 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  background: var(--bg-base);
+}
+
+.toggle-btn--active {
+  color: white;
+  background: var(--accent-coral);
+  border-color: var(--accent-coral);
+}
+
+/* ─── Selection bar ─── */
+.selection-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+}
+
+.selection-bar__text {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.selection-bar__text strong {
+  color: var(--accent-coral);
+}
+
+.selection-bar__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.sel-btn {
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  background: var(--bg-base);
+}
+
+.sel-btn:hover {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+/* ─── Remove badge on thumbnail ─── */
+.remove-selected .thumb-card__img-wrap {
+  border-color: #e53e3e !important;
+  box-shadow: 0 0 0 3px rgba(229,62,62,0.15) !important;
+}
+
+.remove-selected .thumb-card__overlay {
+  background: rgba(229,62,62,0.15) !important;
+}
+
+.thumb-card__check--red {
+  background: #e53e3e !important;
+}
+
+.remove-badge {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #e53e3e;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 600px) {
+  .tool-layout { gap: 16px; }
+  .tool-file-info { padding: 10px 14px; }
+  .tool-actions { justify-content: center; }
+  .download-banner { flex-direction: column; align-items: flex-start; }
+}

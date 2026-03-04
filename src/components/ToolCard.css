@@ -9,7 +9,10 @@
   cursor: pointer;
   overflow: hidden;
   transition: all var(--transition-base);
+  text-decoration: none;
+  color: inherit;
 }
+
 
 .tool-card:hover {
   border-color: var(--card-accent, var(--border-hover));
@@ -41,21 +44,36 @@
 
 /* Icon */
 .tool-card__icon {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 44px;
   height: 44px;
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--card-accent) 8%, transparent);
   color: var(--card-accent);
   margin-bottom: 16px;
-  transition: all var(--transition-base);
+  transition: transform var(--transition-base);
+  z-index: 1;
+}
+
+.tool-card__icon::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--card-accent);
+  opacity: 0.12;
+  transition: opacity var(--transition-base);
+  z-index: -1;
 }
 
 .tool-card:hover .tool-card__icon {
-  background: color-mix(in srgb, var(--card-accent) 14%, transparent);
   transform: scale(1.05);
+}
+
+.tool-card:hover .tool-card__icon::before {
+  opacity: 0.18;
 }
 
 /* Text */

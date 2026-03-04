@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { getCategoryColor } from '../data/toolsData';
 import './ToolCard.css';
 
@@ -5,25 +6,26 @@ export default function ToolCard({ tool }) {
   const catColor = getCategoryColor(tool.category);
 
   return (
-    <div
+    <Link
+      to={`/${tool.id}`}
       className="tool-card"
       style={{ '--card-accent': catColor }}
-      tabIndex={0}
-      role="button"
       aria-label={`${tool.name} tool`}
     >
-      <div className="tool-card__accent"></div>
-      <div className="tool-card__icon">
+      <div className="tool-card__accent" style={{ background: catColor }}></div>
+      <div className="tool-card__icon" style={{ color: catColor }}>
+        <div className="tool-card__icon-bg" style={{ backgroundColor: catColor, opacity: 0.12, position: 'absolute', inset: 0, borderRadius: 'inherit', transition: 'opacity 0.2s', zIndex: -1 }}></div>
         <ToolIcon name={tool.icon} />
       </div>
       <h3 className="tool-card__title">{tool.name}</h3>
       <p className="tool-card__desc">{tool.desc}</p>
-      <div className="tool-card__arrow">
+      <div className="tool-card__arrow" style={{ color: catColor }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
       </div>
-    </div>
+    </Link>
   );
 }
+
 
 function ToolIcon({ name }) {
   const icons = {
