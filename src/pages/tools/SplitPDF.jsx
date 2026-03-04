@@ -41,6 +41,8 @@ export default function SplitPDF() {
   const handleSplit = async () => {
     if (!file) return;
     setLoading(true);
+    setDone(false);
+    setSplitResultBlob(null);
     try {
       const srcBytes = await fileToArrayBuffer(file);
       const srcDoc = await PDFDocument.load(srcBytes, { ignoreEncryption: true });
@@ -196,23 +198,23 @@ export default function SplitPDF() {
                 )}
               </div>
 
-              {done ? (
+              <div className="tool-actions">
+                <ProcessButton
+                  onClick={handleSplit}
+                  loading={loading}
+                  disabled={!pageCount || (mode === 'range' && !rangeStr.trim())}
+                  label="Split PDF"
+                  loadingLabel="Splitting..."
+                />
+              </div>
+
+              {done && (
                 <DownloadBanner
                   onDownload={handleDownload}
                   onReset={reset}
                   filename={splitCount > 1 ? 'split_parts.zip' : 'split_output.pdf'}
                   savedText={splitCount > 1 ? `${splitCount} files packaged as ZIP` : '1 PDF created'}
                 />
-              ) : (
-                <div className="tool-actions">
-                  <ProcessButton
-                    onClick={handleSplit}
-                    loading={loading}
-                    disabled={!pageCount || (mode === 'range' && !rangeStr.trim())}
-                    label="Split PDF"
-                    loadingLabel="Splitting..."
-                  />
-                </div>
               )}
             </div>
           </>

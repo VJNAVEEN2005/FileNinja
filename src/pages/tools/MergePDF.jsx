@@ -29,11 +29,14 @@ export default function MergePDF() {
   const onDragOver = (e, i) => {
     e.preventDefault();
     if (dragIdx.current === null || dragIdx.current === i) return;
+
+    const fromIdx = dragIdx.current;
+    dragIdx.current = i; // Synchronous update to prevent race conditions during continuous firing
+
     setFiles(prev => {
       const next = [...prev];
-      const [moved] = next.splice(dragIdx.current, 1);
+      const [moved] = next.splice(fromIdx, 1);
       next.splice(i, 0, moved);
-      dragIdx.current = i;
       return next;
     });
   };
@@ -103,7 +106,7 @@ export default function MergePDF() {
               <div className="file-list">
                 {files.map((file, i) => (
                   <div
-                    key={file.name + file.size + i}
+                    key={file.name + file.size}
                     draggable
                     onDragStart={() => onDragStart(i)}
                     onDragOver={(e) => onDragOver(e, i)}
