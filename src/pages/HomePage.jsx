@@ -13,7 +13,6 @@ export default function HomePage() {
         title="FileNinja — Free & Private Online PDF Tools"
         description="Process PDF files entirely in your browser. Merge, split, compress, and convert PDFs 100% free. No uploads, no sign-up, no ads."
         path="/"
-        googleVerification="LGbFIMh3-m97SnITcrjJHaOdTk_f4jXxcZtDHzFOPeo"
       />
       <Navbar />
       <main>
