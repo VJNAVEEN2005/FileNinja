@@ -9,8 +9,9 @@ import { Helmet } from 'react-helmet-async';
  * @param {string} props.path - Canonical path (e.g., '/merge-pdf')
  * @param {Object} props.schema - Optional JSON-LD schema object
  * @param {Array} props.faq - Optional array of FAQ objects { question, answer }
+ * @param {string} props.googleVerification - Optional Google Site Verification content
  */
-export default function SEO({ title, description, path, schema, faq }) {
+export default function SEO({ title, description, path, schema, faq, googleVerification }) {
   const url = `https://file-ninja.vercel.app${path}`;
   const siteName = 'FileNinja';
   const fullTitle = `${title} | ${siteName}`;
@@ -53,6 +54,7 @@ export default function SEO({ title, description, path, schema, faq }) {
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
       <link rel="canonical" href={url} />
+      {googleVerification && <meta name="google-site-verification" content={googleVerification} />}
 
       {/* Open Graph / Facebook */}
       <meta property="og:type" content="website" />
