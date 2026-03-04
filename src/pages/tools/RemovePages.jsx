@@ -139,9 +139,9 @@ export default function RemovePages() {
 
             {result && (
               <DownloadBanner
-                onDownload={() => downloadPdf(result.bytes, 'removed_pages.pdf')}
+                onDownload={() => downloadPdf(result.bytes, `${file.name.replace(/\.[^/.]+$/, "")}_removed.pdf`)}
                 onReset={reset}
-                filename="removed_pages.pdf"
+                filename={`${file.name.replace(/\.[^/.]+$/, "")}_removed.pdf`}
                 savedText={`${result.kept} pages kept, ${selected.size} removed`}
               />
             )}

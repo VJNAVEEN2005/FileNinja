@@ -99,7 +99,8 @@ export default function SplitPDF() {
 
   const handleDownload = () => {
     if (!splitResultBlob) return;
-    const fname = splitCount > 1 ? 'split_parts.zip' : 'split_output.pdf';
+    const baseName = file.name.replace(/\.[^/.]+$/, "");
+    const fname = splitCount > 1 ? `${baseName}_split_parts.zip` : `${baseName}_split_output.pdf`;
     saveAs(splitResultBlob, fname);
   };
 
@@ -212,7 +213,7 @@ export default function SplitPDF() {
                 <DownloadBanner
                   onDownload={handleDownload}
                   onReset={reset}
-                  filename={splitCount > 1 ? 'split_parts.zip' : 'split_output.pdf'}
+                  filename={splitCount > 1 ? `${file.name.replace(/\.[^/.]+$/, "")}_split_parts.zip` : `${file.name.replace(/\.[^/.]+$/, "")}_split_output.pdf`}
                   savedText={splitCount > 1 ? `${splitCount} files packaged as ZIP` : '1 PDF created'}
                 />
               )}

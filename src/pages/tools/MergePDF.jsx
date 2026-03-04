@@ -64,7 +64,10 @@ export default function MergePDF() {
   };
 
   const handleDownload = () => {
-    if (result) downloadPdf(result.bytes, 'merged.pdf');
+    if (result) {
+      const baseName = files.length > 0 ? files[0].name.replace(/\.[^/.]+$/, "") : "document";
+      downloadPdf(result.bytes, `${baseName}_merged.pdf`);
+    }
   };
 
   const reset = () => { setFiles([]); setResult(null); };
@@ -138,7 +141,7 @@ export default function MergePDF() {
           <DownloadBanner
             onDownload={handleDownload}
             onReset={reset}
-            filename="merged.pdf"
+            filename={`${files.length > 0 ? files[0].name.replace(/\.[^/.]+$/, "") : "document"}_merged.pdf`}
             savedText={`${files.length} PDFs merged — ${formatFileSize(result.size)}`}
           />
         </div>

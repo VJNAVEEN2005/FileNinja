@@ -170,9 +170,9 @@ export default function ExtractPages() {
 
             {result && (
               <DownloadBanner
-                onDownload={() => downloadPdf(result.bytes, 'extracted_pages.pdf')}
+                onDownload={() => downloadPdf(result.bytes, `${file.name.replace(/\.[^/.]+$/, "")}_extracted.pdf`)}
                 onReset={reset}
-                filename="extracted_pages.pdf"
+                filename={`${file.name.replace(/\.[^/.]+$/, "")}_extracted.pdf`}
                 savedText={`${result.count} page${result.count !== 1 ? 's' : ''} extracted — ${formatFileSize(result.size)}`}
               />
             )}
