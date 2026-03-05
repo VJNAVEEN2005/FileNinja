@@ -33,6 +33,23 @@ import HtmlToPDF from './pages/tools/HtmlToPDF';
 import TextToPDF from './pages/tools/TextToPDF';
 import CsvToPDF from './pages/tools/CsvToPDF';
 
+// Conversion FROM PDF Tools
+import PdfToWord from './pages/tools/PdfToWord';
+import PdfToExcel from './pages/tools/PdfToExcel';
+import PdfToPpt from './pages/tools/PdfToPpt';
+import PdfToJpg from './pages/tools/PdfToJpg';
+import PdfToPng from './pages/tools/PdfToPng';
+import PdfToWebp from './pages/tools/PdfToWebp';
+import PdfToPdfA from './pages/tools/PdfToPdfA';
+
+// Security Tools
+import ProtectPDF from './pages/tools/ProtectPDF';
+import UnlockPDF from './pages/tools/UnlockPDF';
+import ESignPDF from './pages/tools/ESignPDF';
+import RequestSignatures from './pages/tools/RequestSignatures';
+import ComparePDF from './pages/tools/ComparePDF';
+import CertifyPDF from './pages/tools/CertifyPDF';
+
 function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
@@ -89,6 +106,23 @@ function App() {
         <Route path="/tools/html-to-pdf" element={<HtmlToPDF />} />
         <Route path="/tools/text-to-pdf" element={<TextToPDF />} />
         <Route path="/tools/csv-to-pdf" element={<CsvToPDF />} />
+
+        {/* Conversion FROM PDF Tools */}
+        <Route path="/tools/pdf-to-word" element={<PdfToWord />} />
+        <Route path="/tools/pdf-to-excel" element={<PdfToExcel />} />
+        <Route path="/tools/pdf-to-ppt" element={<PdfToPpt />} />
+        <Route path="/tools/pdf-to-jpg" element={<PdfToJpg />} />
+        <Route path="/tools/pdf-to-png" element={<PdfToPng />} />
+        <Route path="/tools/pdf-to-webp" element={<PdfToWebp />} />
+        <Route path="/tools/pdf-to-pdfa" element={<PdfToPdfA />} />
+
+        {/* Security Tools */}
+        <Route path="/tools/protect-pdf" element={<ProtectPDF />} />
+        <Route path="/tools/unlock-pdf" element={<UnlockPDF />} />
+        <Route path="/tools/esign-pdf" element={<ESignPDF />} />
+        <Route path="/tools/request-signatures" element={<RequestSignatures />} />
+        <Route path="/tools/compare-pdf" element={<ComparePDF />} />
+        <Route path="/tools/certify-pdf" element={<CertifyPDF />} />
       </Routes>
 
       {/* Global Search Modal */}

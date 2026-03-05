@@ -13,6 +13,13 @@ const LANGUAGES = [
   { code: 'hin', label: 'Hindi' },
   { code: 'fra', label: 'French' },
   { code: 'spa', label: 'Spanish' },
+  { code: 'deu', label: 'German' },
+  { code: 'jpn', label: 'Japanese' },
+  { code: 'ara', label: 'Arabic' },
+  { code: 'por', label: 'Portuguese' },
+  { code: 'ita', label: 'Italian' },
+  { code: 'kor', label: 'Korean' },
+  { code: 'chi_sim', label: 'Chinese (Simplified)' },
 ];
 
 export default function ImageToPDF() {
@@ -111,19 +118,26 @@ export default function ImageToPDF() {
         const y = margin + (availH - drawH) / 2;
 
         if (ocrEnabled && worker) {
-          setProgress(`OCR image ${i + 1} of ${files.length}…`);
+          setProgress(`OCR image ${i + 1} of ${files.length}… 0%`);
           const dataUrl = await new Promise((resolve) => {
             const reader = new FileReader();
             reader.onload = (e) => resolve(e.target.result);
             reader.readAsDataURL(file);
           });
           
+          // Get natural image dimensions for scaling Tesseract bboxes
+          const pixelStats = await new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+            img.src = dataUrl;
+          });
+
           const { data } = await worker.recognize(dataUrl, {}, { blocks: true, text: true });
           
           // Draw text layer (invisible)
-          if (data.blocks) {
-            const scaleX = drawW / data.width;
-            const scaleY = drawH / data.height;
+          if (data && data.blocks) {
+            const scaleX = drawW / pixelStats.w;
+            const scaleY = drawH / pixelStats.h;
 
             for (const block of data.blocks) {
               for (const para of (block.paragraphs || [])) {
@@ -131,6 +145,7 @@ export default function ImageToPDF() {
                   for (const word of (line.words || [])) {
                     if (word.text && word.text.trim() && word.confidence > 25) {
                       const wx = x + (word.bbox.x0 * scaleX);
+                      // PDF uses bottom-left origin; Tesseract uses top-left
                       const wy = y + drawH - (word.bbox.y1 * scaleY);
                       const wordHeight = (word.bbox.y1 - word.bbox.y0) * scaleY;
                       const fontSize = Math.max(2, wordHeight * 0.85);
@@ -144,7 +159,9 @@ export default function ImageToPDF() {
                           color: rgb(0, 0, 0),
                           opacity: 0.01,
                         });
-                      } catch { /* skip unsupported glyphs */ }
+                      } catch { 
+                        // Skip characters not available in standard fonts
+                      }
                     }
                   }
                 }
