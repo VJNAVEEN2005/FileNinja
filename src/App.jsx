@@ -24,6 +24,15 @@ import CropPDF from './pages/tools/CropPDF';
 import RedactPDF from './pages/tools/RedactPDF';
 import EditMetadata from './pages/tools/EditMetadata';
 
+// Conversion Tools
+import WordToPDF from './pages/tools/WordToPDF';
+import ExcelToPDF from './pages/tools/ExcelToPDF';
+import PptToPDF from './pages/tools/PptToPDF';
+import ImageToPDF from './pages/tools/ImageToPDF';
+import HtmlToPDF from './pages/tools/HtmlToPDF';
+import TextToPDF from './pages/tools/TextToPDF';
+import CsvToPDF from './pages/tools/CsvToPDF';
+
 function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
@@ -45,6 +54,8 @@ function App() {
       
       <Routes>
         <Route path="/" element={<HomePage />} />
+        
+        {/* Management Tools */}
         <Route path="/tools/merge-pdf" element={<MergePDF />} />
         <Route path="/tools/split-pdf" element={<SplitPDF />} />
         <Route path="/tools/remove-pages" element={<RemovePages />} />
@@ -52,9 +63,13 @@ function App() {
         <Route path="/tools/organize-pages" element={<OrganizePages />} />
         <Route path="/tools/rotate-pdf" element={<RotatePDF />} />
         <Route path="/tools/compress-pdf" element={<CompressPDF />} />
+        
+        {/* Optimization & Recovery */}
         <Route path="/tools/flatten-pdf" element={<FlattenPDF />} />
         <Route path="/tools/repair-pdf" element={<RepairPDF />} />
         <Route path="/tools/ocr-pdf" element={<OcrPDF />} />
+        
+        {/* Edit Tools */}
         <Route path="/tools/add-text" element={<AddText />} />
         <Route path="/tools/add-image" element={<AddImage />} />
         <Route path="/tools/draw-on-pdf" element={<DrawOnPDF />} />
@@ -65,6 +80,15 @@ function App() {
         <Route path="/tools/crop-pdf" element={<CropPDF />} />
         <Route path="/tools/redact-pdf" element={<RedactPDF />} />
         <Route path="/tools/edit-metadata" element={<EditMetadata />} />
+
+        {/* Conversion Tools */}
+        <Route path="/tools/word-to-pdf" element={<WordToPDF />} />
+        <Route path="/tools/excel-to-pdf" element={<ExcelToPDF />} />
+        <Route path="/tools/ppt-to-pdf" element={<PptToPDF />} />
+        <Route path="/tools/image-to-pdf" element={<ImageToPDF />} />
+        <Route path="/tools/html-to-pdf" element={<HtmlToPDF />} />
+        <Route path="/tools/text-to-pdf" element={<TextToPDF />} />
+        <Route path="/tools/csv-to-pdf" element={<CsvToPDF />} />
       </Routes>
 
       {/* Global Search Modal */}
