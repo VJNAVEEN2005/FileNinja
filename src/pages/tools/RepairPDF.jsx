@@ -127,7 +127,7 @@ export default function RepairPDF() {
         <div className="tool-layout">
           {/* Recovery report */}
           <div className="repair-report">
-            <h3 className="repair-report__title">✅ Repair Successful</h3>
+            <h3 className="repair-report__title">Repair Successful</h3>
             <div className="repair-report__grid">
               <div className="repair-report__item">
                 <span className="repair-report__label">Pages recovered</span>

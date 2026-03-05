@@ -1,205 +1,199 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PDFDocument } from 'pdf-lib';
-import ToolPageLayout, { ProcessButton, DownloadBanner } from '../../components/shared/ToolPageLayout';
+import PDFEditorLayout from '../../components/shared/PDFEditorLayout';
 import FileDropZone from '../../components/shared/FileDropZone';
-import { fileToArrayBuffer, formatFileSize, downloadPdf, renderPageToDataUrl, getPageCount } from '../../utils/pdfUtils';
+import { fileToArrayBuffer, downloadPdf, getPageCount } from '../../utils/pdfUtils';
+import Navbar from '../../components/Navbar';
 import SEO from '../../components/SEO';
-import './ToolPage.css';
+import '../../components/shared/PDFEditor.css';
 
 export default function RedactPDF() {
+  const navigate = useNavigate();
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
   const [pageCount, setPageCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageImage, setPageImage] = useState(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [startPos, setStartPos] = useState(null);
-  const [redactions, setRedactions] = useState({}); // { pageNum: [{ x, y, w, h }] }
+
+  // rects: { [page]: [ {x,y,w,h}, ... ] }
+  const rectsRef = useRef({});
+  const [rectsVersion, setRectsVersion] = useState(0);
   const canvasRef = useRef(null);
   const bgCanvasRef = useRef(null);
+  const startPos = useRef(null);
 
   const handleFiles = async (newFiles) => {
     if (newFiles.length > 0) {
-      const f = newFiles[0]; setFile(f); setResult(null); setRedactions({});
+      const f = newFiles[0];
+      setFile(f); rectsRef.current = {};
       const count = await getPageCount(f);
       setPageCount(count); setCurrentPage(1);
     }
   };
 
-  const loadPagePreview = useCallback(async () => {
-    if (!file) return;
-    const dataUrl = await renderPageToDataUrl(file, currentPage - 1, 1.5);
-    setPageImage(dataUrl);
-  }, [file, currentPage]);
+  const getRectsForPage = (page) => rectsRef.current[page] || [];
 
-  useEffect(() => { loadPagePreview(); }, [loadPagePreview]);
-
-  const redrawCanvas = useCallback(() => {
+  const redrawOverlay = useCallback(() => {
     if (!canvasRef.current) return;
     const ctx = canvasRef.current.getContext('2d');
     ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-    const rects = redactions[currentPage] || [];
-    ctx.fillStyle = 'rgba(0,0,0,0.85)';
+    const rects = getRectsForPage(currentPage);
     for (const r of rects) {
+      ctx.fillStyle = '#000000';
       ctx.fillRect(r.x, r.y, r.w, r.h);
     }
-  }, [redactions, currentPage]);
+  }, [currentPage, rectsVersion]);
 
-  useEffect(() => {
-    if (!pageImage || !canvasRef.current) return;
-    const img = new Image();
-    img.onload = () => {
-      canvasRef.current.width = img.width; canvasRef.current.height = img.height;
-      bgCanvasRef.current.width = img.width; bgCanvasRef.current.height = img.height;
-      bgCanvasRef.current.getContext('2d').drawImage(img, 0, 0);
-      redrawCanvas();
-    };
-    img.src = pageImage;
-  }, [pageImage, redrawCanvas]);
+  useEffect(() => { redrawOverlay(); }, [redrawOverlay]);
 
   const getPos = (e) => {
     const rect = canvasRef.current.getBoundingClientRect();
-    const scaleX = canvasRef.current.width / rect.width;
-    const scaleY = canvasRef.current.height / rect.height;
-    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+    return { x: (e.clientX - rect.left) * (canvasRef.current.width / rect.width), y: (e.clientY - rect.top) * (canvasRef.current.height / rect.height) };
   };
 
-  const startDraw = (e) => { setIsDrawing(true); setStartPos(getPos(e)); };
+  const handleMouseDown = (e) => {
+    setIsDrawing(true);
+    startPos.current = getPos(e);
+  };
 
-  const draw = (e) => {
-    if (!isDrawing || !startPos) return;
+  const handleMouseMove = (e) => {
+    if (!isDrawing || !startPos.current) return;
     const pos = getPos(e);
-    redrawCanvas();
+    // Live preview of the current rect
+    redrawOverlay();
     const ctx = canvasRef.current.getContext('2d');
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.fillRect(startPos.x, startPos.y, pos.x - startPos.x, pos.y - startPos.y);
+    const x = Math.min(startPos.current.x, pos.x);
+    const y = Math.min(startPos.current.y, pos.y);
+    const w = Math.abs(pos.x - startPos.current.x);
+    const h = Math.abs(pos.y - startPos.current.y);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.fillRect(x, y, w, h);
+    // Dashed border
+    ctx.strokeStyle = '#ff6b4a';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 3]);
+    ctx.strokeRect(x, y, w, h);
+    ctx.setLineDash([]);
   };
 
-  const endDraw = (e) => {
-    if (!isDrawing || !startPos) return;
+  const handleMouseUp = (e) => {
+    if (!isDrawing || !startPos.current) return;
     setIsDrawing(false);
     const pos = getPos(e);
-    const w = pos.x - startPos.x;
-    const h = pos.y - startPos.y;
-    if (Math.abs(w) > 5 && Math.abs(h) > 5) {
-      const rect = {
-        x: w > 0 ? startPos.x : pos.x,
-        y: h > 0 ? startPos.y : pos.y,
-        w: Math.abs(w), h: Math.abs(h),
-      };
-      setRedactions(prev => ({
-        ...prev,
-        [currentPage]: [...(prev[currentPage] || []), rect],
-      }));
+    const x = Math.min(startPos.current.x, pos.x);
+    const y = Math.min(startPos.current.y, pos.y);
+    const w = Math.abs(pos.x - startPos.current.x);
+    const h = Math.abs(pos.y - startPos.current.y);
+    if (w > 5 && h > 5) {
+      if (!rectsRef.current[currentPage]) rectsRef.current[currentPage] = [];
+      rectsRef.current[currentPage].push({ x, y, w, h });
+      setRectsVersion(v => v + 1);
     }
-    setStartPos(null);
+    startPos.current = null;
   };
 
-  useEffect(() => { redrawCanvas(); }, [redactions, currentPage, redrawCanvas]);
+  const undoLast = () => { const r = rectsRef.current[currentPage]; if (r?.length) { r.pop(); setRectsVersion(v => v + 1); } };
+  const clearPage = () => { rectsRef.current[currentPage] = []; setRectsVersion(v => v + 1); };
+  const totalRects = Object.values(rectsRef.current).reduce((s, a) => s + a.length, 0);
 
-  const clearPage = () => {
-    setRedactions(prev => { const next = { ...prev }; delete next[currentPage]; return next; });
-  };
-
-  const undoLast = () => {
-    setRedactions(prev => {
-      const rects = [...(prev[currentPage] || [])];
-      rects.pop();
-      return { ...prev, [currentPage]: rects };
-    });
-  };
-
-  const handleApply = async () => {
-    if (!file) return;
+  const handleSave = async () => {
+    if (!file || totalRects === 0) return;
     setLoading(true);
     try {
-      const arrayBuffer = await fileToArrayBuffer(file);
+      const bytes = await fileToArrayBuffer(file);
       const pdfjsLib = await import('pdfjs-dist');
       pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).href;
-      const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const srcPdf = await pdfjsLib.getDocument({ data: bytes }).promise;
       const outDoc = await PDFDocument.create();
       const previewScale = 1.5;
 
-      for (let i = 1; i <= pdfDoc.numPages; i++) {
-        const page = await pdfDoc.getPage(i);
-        const scale = 2.0;
-        const viewport = page.getViewport({ scale });
+      for (let i = 1; i <= pageCount; i++) {
+        const page = await srcPdf.getPage(i);
+        const viewport = page.getViewport({ scale: previewScale });
         const canvas = document.createElement('canvas');
-        canvas.width = Math.floor(viewport.width); canvas.height = Math.floor(viewport.height);
+        canvas.width = viewport.width; canvas.height = viewport.height;
         const ctx = canvas.getContext('2d');
         await page.render({ canvasContext: ctx, viewport }).promise;
 
-        // Apply black redaction boxes (scale from preview coords to render coords)
-        const rects = redactions[i] || [];
-        if (rects.length > 0) {
-          const scaleRatio = scale / previewScale;
+        const rects = getRectsForPage(i);
+        for (const r of rects) {
           ctx.fillStyle = '#000000';
-          for (const r of rects) {
-            ctx.fillRect(r.x * scaleRatio, r.y * scaleRatio, r.w * scaleRatio, r.h * scaleRatio);
-          }
+          ctx.fillRect(r.x, r.y, r.w, r.h);
         }
 
-        const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.92));
-        const jpegBytes = new Uint8Array(await blob.arrayBuffer());
-        const jpegImage = await outDoc.embedJpg(jpegBytes);
-        const origViewport = page.getViewport({ scale: 1 });
-        const outPage = outDoc.addPage([origViewport.width, origViewport.height]);
-        outPage.drawImage(jpegImage, { x: 0, y: 0, width: origViewport.width, height: origViewport.height });
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+        const jpgBytes = new Uint8Array(await blob.arrayBuffer());
+        const jpgImage = await outDoc.embedJpg(jpgBytes);
+        const origVp = page.getViewport({ scale: 1 });
+        const outPage = outDoc.addPage([origVp.width, origVp.height]);
+        outPage.drawImage(jpgImage, { x: 0, y: 0, width: origVp.width, height: origVp.height });
       }
 
-      const outBytes = await outDoc.save({ useObjectStreams: true });
-      setResult({ bytes: outBytes, size: outBytes.byteLength, pageCount: pdfDoc.numPages });
-    } catch (err) { alert('Error applying redactions.'); console.error(err); }
+      const outBytes = await outDoc.save();
+      downloadPdf(outBytes, `${file.name.replace(/\.[^/.]+$/, '')}_redacted.pdf`);
+    } catch (err) { alert('Error saving.'); console.error(err); }
     finally { setLoading(false); }
   };
 
-  const handleDownload = () => { if (result) downloadPdf(result.bytes, `${file.name.replace(/\.[^/.]+$/, '')}_redacted.pdf`); };
-  const reset = () => { setFile(null); setResult(null); setRedactions({}); };
-  const totalRedactions = Object.values(redactions).reduce((sum, arr) => sum + arr.length, 0);
+  if (!file) {
+    return (
+      <>
+        <Navbar />
+        <SEO title="Redact PDF" description="Permanently redact sensitive content from PDFs. Free and private." path="/redact-pdf" />
+        <div style={{ maxWidth: 700, margin: '80px auto', padding: '0 20px' }}>
+          <a onClick={() => navigate(-1)} style={{ cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+            Back
+          </a>
+          <h1 style={{ fontSize: '1.8rem', marginBottom: 8 }}>Redact PDF</h1>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>Permanently hide sensitive information by drawing black boxes over content.</p>
+          <FileDropZone onFiles={handleFiles} multiple={false} label="Drop PDF file here" sublabel="Upload a PDF to redact" />
+        </div>
+      </>
+    );
+  }
+
+  const toolbar = (
+    <>
+      <div className="editor-tool-group">
+        <span className="editor-tool-label" style={{ color: '#cc0000' }}>Redaction is permanent</span>
+      </div>
+      <div className="editor-tool-group">
+        <span className="editor-tool-label">{getRectsForPage(currentPage).length} area(s)</span>
+      </div>
+      <div className="editor-tool-group">
+        <button className="editor-tool-btn" onClick={undoLast} title="Undo">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 105.64-11.36L1 10"/></svg>
+        </button>
+        <button className="editor-tool-btn" onClick={clearPage} title="Clear page">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </>
+  );
 
   return (
-    <ToolPageLayout title="Redact PDF" description="Permanently hide sensitive information by drawing black boxes."
-      categoryColor="var(--cat-edit)" toolId="redact-pdf"
-      steps={['Upload your PDF', 'Draw boxes over sensitive content', 'Download the redacted PDF']}
-    >
-      <SEO title="Redact PDF — Free" description="Permanently redact sensitive info from PDFs. Free and private." path="/redact-pdf" />
-      {!result ? (
-        <div className="tool-layout">
-          <FileDropZone onFiles={handleFiles} multiple={false} label="Drop PDF file here" sublabel="Upload a PDF to redact" />
-          {file && pageImage && (
-            <div className="tool-section">
-              <div className="tool-section__header">
-                <h3 className="tool-section__title">Page {currentPage} of {pageCount} — {totalRedactions} redaction{totalRedactions !== 1 ? 's' : ''}</h3>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button className="compress-level__preset" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage <= 1}>← Prev</button>
-                  <button className="compress-level__preset" onClick={() => setCurrentPage(p => Math.min(pageCount, p + 1))} disabled={currentPage >= pageCount}>Next →</button>
-                </div>
-              </div>
-              <div className="draw-toolbar">
-                <p className="tool-hint">Click and drag to draw redaction boxes over sensitive content.</p>
-                <button className="compress-level__preset" onClick={undoLast} disabled={!(redactions[currentPage]?.length)}>Undo last</button>
-                <button className="compress-level__preset" onClick={clearPage}>Clear page</button>
-              </div>
-              <div className="draw-canvas-wrap">
-                <canvas ref={bgCanvasRef} className="draw-canvas draw-canvas--bg" />
-                <canvas ref={canvasRef} className="draw-canvas draw-canvas--fg" style={{ cursor: 'crosshair' }}
-                  onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onMouseLeave={() => { setIsDrawing(false); setStartPos(null); }} />
-              </div>
-              <div className="tool-actions">
-                <ProcessButton onClick={handleApply} loading={loading} disabled={!file || totalRedactions === 0} label="Apply Redactions" loadingLabel="Redacting…" />
-                <p className="compress-level__warn" style={{ margin: 0 }}>⚠ Redaction is permanent — underlying content is completely removed.</p>
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="tool-layout">
-          <DownloadBanner onDownload={handleDownload} onReset={reset}
-            filename={`${file.name.replace(/\.[^/.]+$/, '')}_redacted.pdf`}
-            savedText={`${totalRedactions} redaction${totalRedactions !== 1 ? 's' : ''} applied — content permanently removed`} />
-        </div>
-      )}
-    </ToolPageLayout>
+    <>
+      <Navbar />
+      <SEO title="Redact PDF — Free" description="Permanently redact sensitive content from PDFs. Free and private." path="/redact-pdf" />
+      <PDFEditorLayout
+        file={file} toolbar={toolbar}
+        canvasRef={canvasRef} bgCanvasRef={bgCanvasRef}
+        currentPage={currentPage}
+        setCurrentPage={(p) => setCurrentPage(typeof p === 'function' ? p(currentPage) : p)}
+        pageCount={pageCount}
+        redrawOverlay={redrawOverlay}
+        onCanvasMouseDown={handleMouseDown}
+        onCanvasMouseMove={handleMouseMove}
+        onCanvasMouseUp={handleMouseUp}
+        canvasCursor="crosshair"
+        onSave={handleSave}
+        onBack={() => navigate(-1)}
+        saveLabel="Save changes"
+        saveDisabled={totalRects === 0} loading={loading}
+        hint="Draw rectangles over content to permanently redact it"
+      />
+    </>
   );
 }

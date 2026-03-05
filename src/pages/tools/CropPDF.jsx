@@ -1,111 +1,254 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PDFDocument } from 'pdf-lib';
-import ToolPageLayout, { ProcessButton, DownloadBanner } from '../../components/shared/ToolPageLayout';
-import FileDropZone, { FileItem } from '../../components/shared/FileDropZone';
-import { fileToArrayBuffer, formatFileSize, downloadPdf } from '../../utils/pdfUtils';
+import PDFEditorLayout from '../../components/shared/PDFEditorLayout';
+import FileDropZone from '../../components/shared/FileDropZone';
+import { fileToArrayBuffer, downloadPdf, getPageCount } from '../../utils/pdfUtils';
+import Navbar from '../../components/Navbar';
 import SEO from '../../components/SEO';
-import './ToolPage.css';
+import '../../components/shared/PDFEditor.css';
 
 export default function CropPDF() {
+  const navigate = useNavigate();
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [margins, setMargins] = useState({ top: 0, right: 0, bottom: 0, left: 0 });
-  const [unit, setUnit] = useState('pt'); // pt or mm
+  const [pageCount, setPageCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const handleFiles = (newFiles) => { if (newFiles.length > 0) { setFile(newFiles[0]); setResult(null); } };
-  const removeFile = () => { setFile(null); setResult(null); };
+  // Crop margins in canvas pixels (top, right, bottom, left)
+  const [top, setTop] = useState(0);
+  const [right, setRight] = useState(0);
+  const [bottom, setBottom] = useState(0);
+  const [left, setLeft] = useState(0);
 
-  const toPt = (val) => unit === 'mm' ? val * 2.83465 : val;
+  // Drag state for handles
+  const [draggingEdge, setDraggingEdge] = useState(null);
 
-  const handleCrop = async () => {
+  const canvasRef = useRef(null);
+  const bgCanvasRef = useRef(null);
+
+  const handleFiles = async (newFiles) => {
+    if (newFiles.length > 0) {
+      const f = newFiles[0];
+      setFile(f);
+      const count = await getPageCount(f);
+      setPageCount(count); setCurrentPage(1);
+      setTop(0); setRight(0); setBottom(0); setLeft(0);
+    }
+  };
+
+  const redrawOverlay = useCallback(() => {
+    if (!canvasRef.current) return;
+    const ctx = canvasRef.current.getContext('2d');
+    const W = canvasRef.current.width;
+    const H = canvasRef.current.height;
+    ctx.clearRect(0, 0, W, H);
+
+    // Draw dark overlay outside crop area
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    // Top strip
+    ctx.fillRect(0, 0, W, top);
+    // Bottom strip
+    ctx.fillRect(0, H - bottom, W, bottom);
+    // Left strip
+    ctx.fillRect(0, top, left, H - top - bottom);
+    // Right strip
+    ctx.fillRect(W - right, top, right, H - top - bottom);
+
+    // Draw crop border
+    ctx.strokeStyle = '#ff6b4a';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.strokeRect(left, top, W - left - right, H - top - bottom);
+    ctx.setLineDash([]);
+
+    // Draw edge handles
+    const handleSize = 8;
+    ctx.fillStyle = '#ff6b4a';
+    // Top handle
+    ctx.fillRect(W / 2 - handleSize / 2, top - handleSize / 2, handleSize, handleSize);
+    // Bottom handle
+    ctx.fillRect(W / 2 - handleSize / 2, H - bottom - handleSize / 2, handleSize, handleSize);
+    // Left handle
+    ctx.fillRect(left - handleSize / 2, H / 2 - handleSize / 2, handleSize, handleSize);
+    // Right handle
+    ctx.fillRect(W - right - handleSize / 2, H / 2 - handleSize / 2, handleSize, handleSize);
+
+    // Dimensions label
+    const cropW = W - left - right;
+    const cropH = H - top - bottom;
+    if (cropW > 0 && cropH > 0) {
+      ctx.fillStyle = 'rgba(255, 107, 74, 0.85)';
+      ctx.font = '11px Helvetica, Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${Math.round(cropW / 1.5)} x ${Math.round(cropH / 1.5)} pt`, W / 2, top + 16);
+    }
+  }, [top, right, bottom, left]);
+
+  useEffect(() => { redrawOverlay(); }, [redrawOverlay]);
+
+  const getPos = (e) => {
+    const rect = canvasRef.current.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) * (canvasRef.current.width / rect.width),
+      y: (e.clientY - rect.top) * (canvasRef.current.height / rect.height),
+    };
+  };
+
+  const handleMouseDown = (e) => {
+    const pos = getPos(e);
+    const W = canvasRef.current.width;
+    const H = canvasRef.current.height;
+    const threshold = 15;
+
+    // Detect which edge handle is being dragged
+    if (Math.abs(pos.y - top) < threshold && pos.x > left && pos.x < W - right) {
+      setDraggingEdge('top');
+    } else if (Math.abs(pos.y - (H - bottom)) < threshold && pos.x > left && pos.x < W - right) {
+      setDraggingEdge('bottom');
+    } else if (Math.abs(pos.x - left) < threshold && pos.y > top && pos.y < H - bottom) {
+      setDraggingEdge('left');
+    } else if (Math.abs(pos.x - (W - right)) < threshold && pos.y > top && pos.y < H - bottom) {
+      setDraggingEdge('right');
+    }
+  };
+
+  const handleMouseMove = (e) => {
+    if (!draggingEdge) {
+      // Update cursor based on hover
+      const pos = getPos(e);
+      const W = canvasRef.current.width;
+      const H = canvasRef.current.height;
+      const threshold = 15;
+      if ((Math.abs(pos.y - top) < threshold || Math.abs(pos.y - (H - bottom)) < threshold) &&
+          pos.x > left && pos.x < W - right) {
+        canvasRef.current.style.cursor = 'ns-resize';
+      } else if ((Math.abs(pos.x - left) < threshold || Math.abs(pos.x - (W - right)) < threshold) &&
+          pos.y > top && pos.y < H - bottom) {
+        canvasRef.current.style.cursor = 'ew-resize';
+      } else {
+        canvasRef.current.style.cursor = 'default';
+      }
+      return;
+    }
+
+    const pos = getPos(e);
+    const W = canvasRef.current.width;
+    const H = canvasRef.current.height;
+    const minSize = 30;
+
+    if (draggingEdge === 'top') setTop(Math.max(0, Math.min(pos.y, H - bottom - minSize)));
+    else if (draggingEdge === 'bottom') setBottom(Math.max(0, Math.min(H - pos.y, H - top - minSize)));
+    else if (draggingEdge === 'left') setLeft(Math.max(0, Math.min(pos.x, W - right - minSize)));
+    else if (draggingEdge === 'right') setRight(Math.max(0, Math.min(W - pos.x, W - left - minSize)));
+  };
+
+  const handleMouseUp = () => { setDraggingEdge(null); };
+
+  const handleSave = async () => {
     if (!file) return;
     setLoading(true);
     try {
       const bytes = await fileToArrayBuffer(file);
       const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
       const pages = doc.getPages();
+      const previewScale = 1.5;
 
       for (const page of pages) {
         const { width, height } = page.getSize();
         const cropBox = {
-          x: toPt(margins.left),
-          y: toPt(margins.bottom),
-          width: width - toPt(margins.left) - toPt(margins.right),
-          height: height - toPt(margins.top) - toPt(margins.bottom),
+          x: left / previewScale,
+          y: bottom / previewScale,
+          width: width - (left + right) / previewScale,
+          height: height - (top + bottom) / previewScale,
         };
         page.setCropBox(cropBox.x, cropBox.y, cropBox.width, cropBox.height);
-        page.setMediaBox(cropBox.x, cropBox.y, cropBox.width, cropBox.height);
       }
 
       const outBytes = await doc.save();
-      setResult({ bytes: outBytes, size: outBytes.byteLength, pageCount: pages.length });
+      downloadPdf(outBytes, `${file.name.replace(/\.[^/.]+$/, '')}_cropped.pdf`);
     } catch (err) { alert('Error cropping PDF.'); console.error(err); }
     finally { setLoading(false); }
   };
 
-  const handleDownload = () => { if (result) downloadPdf(result.bytes, `${file.name.replace(/\.[^/.]+$/, '')}_cropped.pdf`); };
-  const reset = () => { setFile(null); setResult(null); };
-  const updateMargin = (key, value) => setMargins(prev => ({ ...prev, [key]: Math.max(0, Number(value)) }));
+  const hasCrop = top > 0 || right > 0 || bottom > 0 || left > 0;
+
+  if (!file) {
+    return (
+      <>
+        <Navbar />
+        <SEO title="Crop PDF" description="Crop PDF pages to exact dimensions. Free and private." path="/crop-pdf" />
+        <div style={{ maxWidth: 700, margin: '80px auto', padding: '0 20px' }}>
+          <a onClick={() => navigate(-1)} style={{ cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+            Back
+          </a>
+          <h1 style={{ fontSize: '1.8rem', marginBottom: 8 }}>Crop PDF</h1>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>Trim PDF pages to exact dimensions by dragging crop handles.</p>
+          <FileDropZone onFiles={handleFiles} multiple={false} label="Drop PDF file here" sublabel="Upload a PDF to crop" />
+        </div>
+      </>
+    );
+  }
+
+  const previewScale = 1.5;
+  const pxToPt = (v) => Math.round(v / previewScale);
+
+  const toolbar = (
+    <>
+      <div className="editor-tool-group">
+        <span className="editor-tool-label">Margins (pt)</span>
+      </div>
+      <div className="editor-tool-group">
+        <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Top</span>
+        <input className="editor-size-input" type="number" min="0" value={pxToPt(top)}
+          onChange={(e) => setTop(Number(e.target.value) * previewScale)} />
+      </div>
+      <div className="editor-tool-group">
+        <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Right</span>
+        <input className="editor-size-input" type="number" min="0" value={pxToPt(right)}
+          onChange={(e) => setRight(Number(e.target.value) * previewScale)} />
+      </div>
+      <div className="editor-tool-group">
+        <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Bottom</span>
+        <input className="editor-size-input" type="number" min="0" value={pxToPt(bottom)}
+          onChange={(e) => setBottom(Number(e.target.value) * previewScale)} />
+      </div>
+      <div className="editor-tool-group">
+        <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Left</span>
+        <input className="editor-size-input" type="number" min="0" value={pxToPt(left)}
+          onChange={(e) => setLeft(Number(e.target.value) * previewScale)} />
+      </div>
+      <div className="editor-tool-group">
+        <button className="editor-tool-btn" onClick={() => { setTop(0); setRight(0); setBottom(0); setLeft(0); }} title="Reset crop">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 105.64-11.36L1 10"/></svg>
+        </button>
+      </div>
+    </>
+  );
 
   return (
-    <ToolPageLayout title="Crop PDF" description="Trim PDF pages by setting custom margins."
-      categoryColor="var(--cat-edit)" toolId="crop-pdf"
-      steps={['Upload your PDF', 'Set the crop margins', 'Download the cropped PDF']}
-    >
-      <SEO title="Crop PDF Pages — Free" description="Crop PDF pages by setting margins. Free and private." path="/crop-pdf" />
-      {!result ? (
-        <div className="tool-layout">
-          <FileDropZone onFiles={handleFiles} multiple={false} label="Drop PDF file here" sublabel="Upload a PDF to crop its pages" />
-          {file && (
-            <div className="tool-section">
-              <div className="tool-section__header">
-                <h3 className="tool-section__title">{file.name} — {formatFileSize(file.size)}</h3>
-                <button className="tool-section__clear" onClick={reset}>Clear</button>
-              </div>
-              <div className="watermark-options">
-                <div className="metadata-form__field">
-                  <label className="metadata-form__label">Unit</label>
-                  <div className="compress-level__labels">
-                    <button className={`compress-level__preset ${unit === 'pt' ? 'active' : ''}`} onClick={() => setUnit('pt')}>Points (pt)</button>
-                    <button className={`compress-level__preset ${unit === 'mm' ? 'active' : ''}`} onClick={() => setUnit('mm')}>Millimeters (mm)</button>
-                  </div>
-                </div>
-                <div className="crop-margins">
-                  <div className="crop-margins__top">
-                    <label className="metadata-form__label">Top</label>
-                    <input className="option-input option-input--narrow" type="number" min="0" value={margins.top} onChange={(e) => updateMargin('top', e.target.value)} />
-                  </div>
-                  <div className="crop-margins__middle">
-                    <div>
-                      <label className="metadata-form__label">Left</label>
-                      <input className="option-input option-input--narrow" type="number" min="0" value={margins.left} onChange={(e) => updateMargin('left', e.target.value)} />
-                    </div>
-                    <div className="crop-margins__preview">Page</div>
-                    <div>
-                      <label className="metadata-form__label">Right</label>
-                      <input className="option-input option-input--narrow" type="number" min="0" value={margins.right} onChange={(e) => updateMargin('right', e.target.value)} />
-                    </div>
-                  </div>
-                  <div className="crop-margins__bottom">
-                    <label className="metadata-form__label">Bottom</label>
-                    <input className="option-input option-input--narrow" type="number" min="0" value={margins.bottom} onChange={(e) => updateMargin('bottom', e.target.value)} />
-                  </div>
-                </div>
-              </div>
-              <div className="tool-actions">
-                <ProcessButton onClick={handleCrop} loading={loading} disabled={!file} label="Crop PDF" loadingLabel="Cropping…" />
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="tool-layout">
-          <DownloadBanner onDownload={handleDownload} onReset={reset}
-            filename={`${file.name.replace(/\.[^/.]+$/, '')}_cropped.pdf`}
-            savedText={`${result.pageCount} page${result.pageCount !== 1 ? 's' : ''} cropped`} />
-        </div>
-      )}
-    </ToolPageLayout>
+    <>
+      <Navbar />
+      <SEO title="Crop PDF" description="Crop PDF pages to exact dimensions. Free and private." path="/crop-pdf" />
+      <PDFEditorLayout
+        file={file} toolbar={toolbar}
+        canvasRef={canvasRef} bgCanvasRef={bgCanvasRef}
+        currentPage={currentPage}
+        setCurrentPage={(p) => setCurrentPage(typeof p === 'function' ? p(currentPage) : p)}
+        pageCount={pageCount}
+        redrawOverlay={redrawOverlay}
+        onCanvasMouseDown={handleMouseDown}
+        onCanvasMouseMove={handleMouseMove}
+        onCanvasMouseUp={handleMouseUp}
+        canvasCursor="default"
+        onSave={handleSave}
+        onBack={() => navigate(-1)}
+        saveLabel="Save changes"
+        saveDisabled={!hasCrop}
+        loading={loading}
+        hint="Drag the edges to set crop area, or type exact values in the toolbar"
+      />
+    </>
   );
 }

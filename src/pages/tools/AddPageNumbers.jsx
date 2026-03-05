@@ -1,41 +1,79 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
-import ToolPageLayout, { ProcessButton, DownloadBanner } from '../../components/shared/ToolPageLayout';
-import FileDropZone, { FileItem } from '../../components/shared/FileDropZone';
-import { fileToArrayBuffer, formatFileSize, downloadPdf } from '../../utils/pdfUtils';
+import PDFEditorLayout from '../../components/shared/PDFEditorLayout';
+import FileDropZone from '../../components/shared/FileDropZone';
+import { fileToArrayBuffer, downloadPdf, getPageCount } from '../../utils/pdfUtils';
+import Navbar from '../../components/Navbar';
 import SEO from '../../components/SEO';
-import './ToolPage.css';
-
-const POSITIONS = [
-  { id: 'bottom-center', label: 'Bottom Center' },
-  { id: 'bottom-left', label: 'Bottom Left' },
-  { id: 'bottom-right', label: 'Bottom Right' },
-  { id: 'top-center', label: 'Top Center' },
-  { id: 'top-left', label: 'Top Left' },
-  { id: 'top-right', label: 'Top Right' },
-];
+import '../../components/shared/PDFEditor.css';
 
 const FORMATS = [
-  { id: 'number', label: '1, 2, 3…', fn: (n) => `${n}` },
-  { id: 'page-n', label: 'Page 1', fn: (n) => `Page ${n}` },
-  { id: 'page-of', label: 'Page 1 of N', fn: (n, t) => `Page ${n} of ${t}` },
-  { id: 'dash', label: '— 1 —', fn: (n) => `— ${n} —` },
+  { id: 'num', label: '1', fn: (i) => `${i}` },
+  { id: 'dash', label: '- 1 -', fn: (i) => `- ${i} -` },
+  { id: 'of', label: '1 of N', fn: (i, n) => `${i} of ${n}` },
+  { id: 'page', label: 'Page 1', fn: (i) => `Page ${i}` },
+];
+
+const POSITIONS = [
+  { id: 'bottom-center', label: 'Bottom Center', x: 0.5, y: 30 },
+  { id: 'bottom-left', label: 'Bottom Left', x: 0.1, y: 30 },
+  { id: 'bottom-right', label: 'Bottom Right', x: 0.9, y: 30 },
+  { id: 'top-center', label: 'Top Center', x: 0.5, yFromTop: 30 },
 ];
 
 export default function AddPageNumbers() {
+  const navigate = useNavigate();
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [position, setPosition] = useState('bottom-center');
-  const [format, setFormat] = useState('number');
+  const [pageCount, setPageCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const [formatId, setFormatId] = useState('num');
+  const [positionId, setPositionId] = useState('bottom-center');
+  const [fontSize, setFontSize] = useState(12);
   const [startNum, setStartNum] = useState(1);
-  const [fontSize, setFontSize] = useState(11);
   const [skipFirst, setSkipFirst] = useState(false);
 
-  const handleFiles = (newFiles) => { if (newFiles.length > 0) { setFile(newFiles[0]); setResult(null); } };
-  const removeFile = () => { setFile(null); setResult(null); };
+  const canvasRef = useRef(null);
+  const bgCanvasRef = useRef(null);
 
-  const handleApply = async () => {
+  const handleFiles = async (newFiles) => {
+    if (newFiles.length > 0) {
+      const f = newFiles[0];
+      setFile(f);
+      const count = await getPageCount(f);
+      setPageCount(count); setCurrentPage(1);
+    }
+  };
+
+  const redrawOverlay = useCallback(() => {
+    if (!canvasRef.current) return;
+    const ctx = canvasRef.current.getContext('2d');
+    const W = canvasRef.current.width;
+    const H = canvasRef.current.height;
+    ctx.clearRect(0, 0, W, H);
+
+    if (skipFirst && currentPage === 1) return;
+
+    const fmt = FORMATS.find(f => f.id === formatId) || FORMATS[0];
+    const pos = POSITIONS.find(p => p.id === positionId) || POSITIONS[0];
+    const num = startNum + currentPage - 1;
+    const label = fmt.fn(num, pageCount + startNum - 1);
+
+    ctx.font = `${fontSize}px Helvetica, Arial, sans-serif`;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.textAlign = pos.x < 0.3 ? 'left' : pos.x > 0.7 ? 'right' : 'center';
+    ctx.textBaseline = pos.yFromTop ? 'top' : 'bottom';
+
+    const drawX = W * pos.x;
+    const drawY = pos.yFromTop ? pos.yFromTop : H - pos.y;
+    ctx.fillText(label, drawX, drawY);
+  }, [currentPage, pageCount, formatId, positionId, fontSize, startNum, skipFirst]);
+
+  useEffect(() => { redrawOverlay(); }, [redrawOverlay]);
+
+  const handleSave = async () => {
     if (!file) return;
     setLoading(true);
     try {
@@ -43,104 +81,102 @@ export default function AddPageNumbers() {
       const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
       const font = await doc.embedFont(StandardFonts.Helvetica);
       const pages = doc.getPages();
-      const total = pages.length;
-      const fmt = FORMATS.find(f => f.id === format) || FORMATS[0];
+      const fmt = FORMATS.find(f => f.id === formatId) || FORMATS[0];
+      const pos = POSITIONS.find(p => p.id === positionId) || POSITIONS[0];
 
       pages.forEach((page, i) => {
         if (skipFirst && i === 0) return;
-        const pageNum = i + startNum;
-        const text = fmt.fn(pageNum, total + startNum - 1);
-        const textWidth = font.widthOfTextAtSize(text, fontSize);
         const { width, height } = page.getSize();
-        const margin = 36;
+        const num = startNum + i;
+        const label = fmt.fn(num, pages.length + startNum - 1);
+        const tw = font.widthOfTextAtSize(label, fontSize);
+        let x;
+        if (pos.x < 0.3) x = width * pos.x;
+        else if (pos.x > 0.7) x = width * pos.x - tw;
+        else x = (width - tw) / 2;
+        const y = pos.yFromTop ? height - pos.yFromTop - fontSize : pos.y;
 
-        let x, y;
-        if (position.includes('bottom')) y = margin;
-        else y = height - margin;
-
-        if (position.includes('left')) x = margin;
-        else if (position.includes('right')) x = width - textWidth - margin;
-        else x = (width - textWidth) / 2;
-
-        page.drawText(text, { x, y, size: fontSize, font, color: rgb(0.3, 0.3, 0.3) });
+        page.drawText(label, { x, y, size: fontSize, font, color: rgb(0, 0, 0) });
       });
 
       const outBytes = await doc.save();
-      setResult({ bytes: outBytes, size: outBytes.byteLength, pageCount: pages.length });
-    } catch (err) {
-      alert('Error adding page numbers.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+      downloadPdf(outBytes, `${file.name.replace(/\.[^/.]+$/, '')}_numbered.pdf`);
+    } catch (err) { alert('Error adding page numbers.'); console.error(err); }
+    finally { setLoading(false); }
   };
 
-  const handleDownload = () => {
-    if (result) downloadPdf(result.bytes, `${file.name.replace(/\.[^/.]+$/, '')}_numbered.pdf`);
-  };
+  if (!file) {
+    return (
+      <>
+        <Navbar />
+        <SEO title="Add Page Numbers to PDF" description="Add page numbers to PDFs. Free and private." path="/add-page-numbers" />
+        <div style={{ maxWidth: 700, margin: '80px auto', padding: '0 20px' }}>
+          <a onClick={() => navigate(-1)} style={{ cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+            Back
+          </a>
+          <h1 style={{ fontSize: '1.8rem', marginBottom: 8 }}>Page Numbers</h1>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>Add page numbers in any format to your PDF.</p>
+          <FileDropZone onFiles={handleFiles} multiple={false} label="Drop PDF file here" sublabel="Upload a PDF to add page numbers" />
+        </div>
+      </>
+    );
+  }
 
-  const reset = () => { setFile(null); setResult(null); };
+  const toolbar = (
+    <>
+      <div className="editor-tool-group">
+        <span className="editor-tool-label">Format</span>
+        {FORMATS.map(f => (
+          <button key={f.id} className={`editor-tool-btn ${formatId === f.id ? 'active' : ''}`}
+            onClick={() => setFormatId(f.id)} style={{ fontSize: '0.75rem', width: 'auto', padding: '0 8px' }}>{f.label}</button>
+        ))}
+      </div>
+      <div className="editor-tool-group">
+        <span className="editor-tool-label">Position</span>
+        <select className="editor-size-input" style={{ width: 'auto' }}
+          value={positionId} onChange={(e) => setPositionId(e.target.value)}>
+          {POSITIONS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+        </select>
+      </div>
+      <div className="editor-tool-group">
+        <span className="editor-tool-label">Size</span>
+        <input className="editor-size-input" type="number" min="8" max="36" value={fontSize}
+          onChange={(e) => setFontSize(Number(e.target.value))} />
+      </div>
+      <div className="editor-tool-group">
+        <span className="editor-tool-label">Start</span>
+        <input className="editor-size-input" type="number" min="0" max="999" value={startNum}
+          onChange={(e) => setStartNum(Number(e.target.value))} />
+      </div>
+      <div className="editor-tool-group">
+        <label style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+          <input type="checkbox" checked={skipFirst} onChange={(e) => setSkipFirst(e.target.checked)} />
+          <span className="editor-tool-label" style={{ textTransform: 'none' }}>Skip first page</span>
+        </label>
+      </div>
+    </>
+  );
 
   return (
-    <ToolPageLayout title="Page Numbers" description="Add page numbers in any format and position."
-      categoryColor="var(--cat-edit)" toolId="add-page-numbers"
-      steps={['Upload your PDF', 'Choose format and position', 'Download the numbered PDF']}
-    >
-      <SEO title="Add Page Numbers to PDF — Free" description="Add page numbers to PDFs. Free and private." path="/add-page-numbers" />
-      {!result ? (
-        <div className="tool-layout">
-          <FileDropZone onFiles={handleFiles} multiple={false} label="Drop PDF file here" sublabel="Upload a PDF to add page numbers" />
-          {file && (
-            <div className="tool-section">
-              <div className="tool-section__header">
-                <h3 className="tool-section__title">{file.name} — {formatFileSize(file.size)}</h3>
-                <button className="tool-section__clear" onClick={reset}>Clear</button>
-              </div>
-              <div className="watermark-options">
-                <div className="metadata-form__field">
-                  <label className="metadata-form__label">Format</label>
-                  <div className="compress-level__labels">
-                    {FORMATS.map((f) => (
-                      <button key={f.id} className={`compress-level__preset ${format === f.id ? 'active' : ''}`} onClick={() => setFormat(f.id)}>{f.label}</button>
-                    ))}
-                  </div>
-                </div>
-                <div className="metadata-form__field">
-                  <label className="metadata-form__label">Position</label>
-                  <div className="compress-level__labels">
-                    {POSITIONS.map((p) => (
-                      <button key={p.id} className={`compress-level__preset ${position === p.id ? 'active' : ''}`} onClick={() => setPosition(p.id)}>{p.label}</button>
-                    ))}
-                  </div>
-                </div>
-                <div className="watermark-options__row">
-                  <div className="metadata-form__field">
-                    <label className="metadata-form__label">Start Number</label>
-                    <input className="option-input option-input--narrow" type="number" min="1" value={startNum} onChange={(e) => setStartNum(Number(e.target.value))} />
-                  </div>
-                  <div className="metadata-form__field">
-                    <label className="metadata-form__label">Font Size</label>
-                    <input className="option-input option-input--narrow" type="number" min="6" max="36" value={fontSize} onChange={(e) => setFontSize(Number(e.target.value))} />
-                  </div>
-                  <div className="metadata-form__field" style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 22 }}>
-                    <input type="checkbox" id="skipFirst" checked={skipFirst} onChange={(e) => setSkipFirst(e.target.checked)} />
-                    <label htmlFor="skipFirst" className="metadata-form__label" style={{ margin: 0 }}>Skip first page</label>
-                  </div>
-                </div>
-              </div>
-              <div className="tool-actions">
-                <ProcessButton onClick={handleApply} loading={loading} disabled={!file} label="Add Page Numbers" loadingLabel="Adding…" />
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="tool-layout">
-          <DownloadBanner onDownload={handleDownload} onReset={reset}
-            filename={`${file.name.replace(/\.[^/.]+$/, '')}_numbered.pdf`}
-            savedText={`Page numbers added to ${result.pageCount} pages`} />
-        </div>
-      )}
-    </ToolPageLayout>
+    <>
+      <Navbar />
+      <SEO title="Add Page Numbers to PDF" description="Add page numbers to PDFs. Free and private." path="/add-page-numbers" />
+      <PDFEditorLayout
+        file={file} toolbar={toolbar}
+        canvasRef={canvasRef} bgCanvasRef={bgCanvasRef}
+        currentPage={currentPage}
+        setCurrentPage={(p) => setCurrentPage(typeof p === 'function' ? p(currentPage) : p)}
+        pageCount={pageCount}
+        redrawOverlay={redrawOverlay}
+        canvasCursor="default"
+        onSave={handleSave}
+        onBack={() => navigate(-1)}
+        saveLabel="Save changes"
+        saveDisabled={false}
+        loading={loading}
+        hint="Preview of page numbers. Navigate pages to see how each one looks."
+      />
+    </>
   );
 }

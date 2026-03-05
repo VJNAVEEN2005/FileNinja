@@ -1,167 +1,228 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PDFDocument } from 'pdf-lib';
-import ToolPageLayout, { ProcessButton, DownloadBanner } from '../../components/shared/ToolPageLayout';
+import PDFEditorLayout from '../../components/shared/PDFEditorLayout';
 import FileDropZone from '../../components/shared/FileDropZone';
-import { fileToArrayBuffer, formatFileSize, downloadPdf, renderPageToDataUrl, getPageCount } from '../../utils/pdfUtils';
+import { fileToArrayBuffer, downloadPdf, getPageCount } from '../../utils/pdfUtils';
+import Navbar from '../../components/Navbar';
 import SEO from '../../components/SEO';
-import './ToolPage.css';
+import '../../components/shared/PDFEditor.css';
 
-const HIGHLIGHT_COLORS = [
-  { id: 'yellow', label: 'Yellow', color: 'rgba(255,255,0,0.35)' },
-  { id: 'green', label: 'Green', color: 'rgba(0,255,0,0.25)' },
-  { id: 'blue', label: 'Blue', color: 'rgba(0,120,255,0.25)' },
-  { id: 'pink', label: 'Pink', color: 'rgba(255,0,128,0.25)' },
+const COLORS = [
+  { id: 'yellow', hex: '#ffff00' }, { id: 'lime', hex: '#00ff00' },
+  { id: 'cyan', hex: '#00ffff' }, { id: 'pink', hex: '#ff66cc' },
 ];
+const SIZES = [12, 18, 24, 32];
 
 export default function HighlightPDF() {
+  const navigate = useNavigate();
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
   const [pageCount, setPageCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageImage, setPageImage] = useState(null);
-  const [hlColor, setHlColor] = useState('rgba(255,255,0,0.35)');
+
+  const [colorId, setColorId] = useState('yellow');
+  const [brushSize, setBrushSize] = useState(18);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [highlights, setHighlights] = useState({});
+
+  const strokesRef = useRef({});
+  const [strokesVersion, setStrokesVersion] = useState(0);
   const canvasRef = useRef(null);
   const bgCanvasRef = useRef(null);
+  const currentStroke = useRef([]);
+  const currentProps = useRef({ color: '#ffff00', size: 18 });
 
   const handleFiles = async (newFiles) => {
     if (newFiles.length > 0) {
-      const f = newFiles[0]; setFile(f); setResult(null); setHighlights({});
+      const f = newFiles[0];
+      setFile(f); strokesRef.current = {};
       const count = await getPageCount(f);
       setPageCount(count); setCurrentPage(1);
     }
   };
 
-  const loadPagePreview = useCallback(async () => {
-    if (!file) return;
-    const dataUrl = await renderPageToDataUrl(file, currentPage - 1, 1.5);
-    setPageImage(dataUrl);
-  }, [file, currentPage]);
+  const getStrokesForPage = (page) => strokesRef.current[page] || [];
 
-  useEffect(() => { loadPagePreview(); }, [loadPagePreview]);
+  const redrawOverlay = useCallback(() => {
+    if (!canvasRef.current) return;
+    const ctx = canvasRef.current.getContext('2d');
+    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    const strokes = getStrokesForPage(currentPage);
+    for (const stroke of strokes) {
+      if (stroke.points.length < 2) continue;
+      ctx.strokeStyle = stroke.color;
+      ctx.lineWidth = stroke.size;
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.globalAlpha = 0.35;
+      ctx.beginPath();
+      ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+      for (let i = 1; i < stroke.points.length; i++) ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+      ctx.stroke();
+      ctx.globalAlpha = 1.0;
+    }
+  }, [currentPage, strokesVersion]);
 
-  useEffect(() => {
-    if (!pageImage || !canvasRef.current) return;
-    const img = new Image();
-    img.onload = () => {
-      const canvas = canvasRef.current;
-      const bgCanvas = bgCanvasRef.current;
-      canvas.width = img.width; canvas.height = img.height;
-      bgCanvas.width = img.width; bgCanvas.height = img.height;
-      bgCanvas.getContext('2d').drawImage(img, 0, 0);
-      if (highlights[currentPage]) {
-        const hlImg = new Image();
-        hlImg.onload = () => { canvasRef.current.getContext('2d').drawImage(hlImg, 0, 0); };
-        hlImg.src = highlights[currentPage];
-      }
-    };
-    img.src = pageImage;
-  }, [pageImage, currentPage, highlights]);
+  useEffect(() => { redrawOverlay(); }, [redrawOverlay]);
 
   const getPos = (e) => {
     const rect = canvasRef.current.getBoundingClientRect();
-    const scaleX = canvasRef.current.width / rect.width;
-    const scaleY = canvasRef.current.height / rect.height;
-    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+    return { x: (e.clientX - rect.left) * (canvasRef.current.width / rect.width), y: (e.clientY - rect.top) * (canvasRef.current.height / rect.height) };
   };
 
-  const startDraw = (e) => { setIsDrawing(true); const ctx = canvasRef.current.getContext('2d'); const pos = getPos(e); ctx.beginPath(); ctx.moveTo(pos.x, pos.y); ctx.strokeStyle = hlColor; ctx.lineWidth = 20; ctx.lineCap = 'round'; };
-  const draw = (e) => { if (!isDrawing) return; const ctx = canvasRef.current.getContext('2d'); const pos = getPos(e); ctx.lineTo(pos.x, pos.y); ctx.stroke(); };
-  const endDraw = () => { if (!isDrawing) return; setIsDrawing(false); setHighlights(prev => ({ ...prev, [currentPage]: canvasRef.current.toDataURL() })); };
-
-  const clearPage = () => {
-    canvasRef.current.getContext('2d').clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-    setHighlights(prev => { const next = { ...prev }; delete next[currentPage]; return next; });
+  const handleMouseDown = (e) => {
+    setIsDrawing(true);
+    const pos = getPos(e);
+    const c = COLORS.find(cl => cl.id === colorId) || COLORS[0];
+    currentStroke.current = [pos];
+    currentProps.current = { color: c.hex, size: brushSize };
   };
 
-  const handleApply = async () => {
-    if (!file) return;
+  const handleMouseMove = (e) => {
+    if (!isDrawing) return;
+    const pos = getPos(e);
+    currentStroke.current.push(pos);
+    const ctx = canvasRef.current.getContext('2d');
+    const pts = currentStroke.current;
+    if (pts.length < 2) return;
+    ctx.strokeStyle = currentProps.current.color;
+    ctx.lineWidth = currentProps.current.size;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.globalAlpha = 0.35;
+    ctx.beginPath();
+    ctx.moveTo(pts[pts.length - 2].x, pts[pts.length - 2].y);
+    ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+    ctx.stroke();
+    ctx.globalAlpha = 1.0;
+  };
+
+  const handleMouseUp = () => {
+    if (!isDrawing) return;
+    setIsDrawing(false);
+    if (currentStroke.current.length > 1) {
+      const page = currentPage;
+      if (!strokesRef.current[page]) strokesRef.current[page] = [];
+      strokesRef.current[page].push({ points: [...currentStroke.current], color: currentProps.current.color, size: currentProps.current.size });
+      setStrokesVersion(v => v + 1);
+    }
+    currentStroke.current = [];
+  };
+
+  const clearPage = () => { strokesRef.current[currentPage] = []; setStrokesVersion(v => v + 1); };
+  const undoLast = () => { const s = strokesRef.current[currentPage]; if (s?.length) { s.pop(); setStrokesVersion(v => v + 1); } };
+  const totalStrokes = Object.values(strokesRef.current).reduce((s, a) => s + a.length, 0);
+
+  const handleSave = async () => {
+    if (!file || totalStrokes === 0) return;
     setLoading(true);
     try {
-      const arrayBuffer = await fileToArrayBuffer(file);
+      const bytes = await fileToArrayBuffer(file);
       const pdfjsLib = await import('pdfjs-dist');
       pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).href;
-      const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const srcPdf = await pdfjsLib.getDocument({ data: bytes }).promise;
       const outDoc = await PDFDocument.create();
+      const previewScale = 1.5;
 
-      for (let i = 1; i <= pdfDoc.numPages; i++) {
-        const page = await pdfDoc.getPage(i);
-        const scale = 2.0;
-        const viewport = page.getViewport({ scale });
+      for (let i = 1; i <= pageCount; i++) {
+        const page = await srcPdf.getPage(i);
+        const viewport = page.getViewport({ scale: previewScale });
         const canvas = document.createElement('canvas');
-        canvas.width = Math.floor(viewport.width); canvas.height = Math.floor(viewport.height);
+        canvas.width = viewport.width; canvas.height = viewport.height;
         const ctx = canvas.getContext('2d');
         await page.render({ canvasContext: ctx, viewport }).promise;
 
-        if (highlights[i]) {
-          const hlImg = await new Promise(r => { const img = new Image(); img.onload = () => r(img); img.src = highlights[i]; });
-          ctx.drawImage(hlImg, 0, 0, canvas.width, canvas.height);
+        const strokes = getStrokesForPage(i);
+        for (const stroke of strokes) {
+          if (stroke.points.length < 2) continue;
+          ctx.strokeStyle = stroke.color; ctx.lineWidth = stroke.size;
+          ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.globalAlpha = 0.35;
+          ctx.beginPath();
+          ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+          for (let j = 1; j < stroke.points.length; j++) ctx.lineTo(stroke.points[j].x, stroke.points[j].y);
+          ctx.stroke(); ctx.globalAlpha = 1.0;
         }
 
         const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.92));
-        const jpegBytes = new Uint8Array(await blob.arrayBuffer());
-        const jpegImage = await outDoc.embedJpg(jpegBytes);
-        const origViewport = page.getViewport({ scale: 1 });
-        const outPage = outDoc.addPage([origViewport.width, origViewport.height]);
-        outPage.drawImage(jpegImage, { x: 0, y: 0, width: origViewport.width, height: origViewport.height });
+        const jpgBytes = new Uint8Array(await blob.arrayBuffer());
+        const jpgImage = await outDoc.embedJpg(jpgBytes);
+        const origVp = page.getViewport({ scale: 1 });
+        const outPage = outDoc.addPage([origVp.width, origVp.height]);
+        outPage.drawImage(jpgImage, { x: 0, y: 0, width: origVp.width, height: origVp.height });
       }
 
-      const outBytes = await outDoc.save({ useObjectStreams: true });
-      setResult({ bytes: outBytes, size: outBytes.byteLength, pageCount: pdfDoc.numPages });
-    } catch (err) { alert('Error applying highlights.'); console.error(err); }
+      const outBytes = await outDoc.save();
+      downloadPdf(outBytes, `${file.name.replace(/\.[^/.]+$/, '')}_highlight.pdf`);
+    } catch (err) { alert('Error saving.'); console.error(err); }
     finally { setLoading(false); }
   };
 
-  const handleDownload = () => { if (result) downloadPdf(result.bytes, `${file.name.replace(/\.[^/.]+$/, '')}_highlighted.pdf`); };
-  const reset = () => { setFile(null); setResult(null); setHighlights({}); };
+  if (!file) {
+    return (
+      <>
+        <Navbar />
+        <SEO title="Highlight PDF" description="Highlight text in PDFs. Free and private." path="/highlight-pdf" />
+        <div style={{ maxWidth: 700, margin: '80px auto', padding: '0 20px' }}>
+          <a onClick={() => navigate(-1)} style={{ cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+            Back
+          </a>
+          <h1 style={{ fontSize: '1.8rem', marginBottom: 8 }}>Highlight PDF</h1>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>Highlight, underline, and annotate your PDF pages.</p>
+          <FileDropZone onFiles={handleFiles} multiple={false} label="Drop PDF file here" sublabel="Upload a PDF to highlight" />
+        </div>
+      </>
+    );
+  }
+
+  const toolbar = (
+    <>
+      <div className="editor-tool-group">
+        <span className="editor-tool-label">Color</span>
+        {COLORS.map(c => (
+          <button key={c.id} className={`editor-color-dot ${colorId === c.id ? 'active' : ''}`}
+            style={{ backgroundColor: c.hex }} onClick={() => setColorId(c.id)} title={c.id} />
+        ))}
+      </div>
+      <div className="editor-tool-group">
+        <span className="editor-tool-label">Size</span>
+        {SIZES.map(s => (
+          <button key={s} className={`editor-tool-btn ${brushSize === s ? 'active' : ''}`}
+            onClick={() => setBrushSize(s)} title={`${s}px`}>
+            <svg width="16" height="16"><rect x="2" y={8 - Math.min(s / 4, 5)} width="12" height={Math.min(s / 2, 10)} rx="1" fill="currentColor"/></svg>
+          </button>
+        ))}
+      </div>
+      <div className="editor-tool-group">
+        <button className="editor-tool-btn" onClick={undoLast} title="Undo">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 105.64-11.36L1 10"/></svg>
+        </button>
+        <button className="editor-tool-btn" onClick={clearPage} title="Clear page">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </>
+  );
 
   return (
-    <ToolPageLayout title="Highlight PDF" description="Highlight, underline, and annotate your PDF pages."
-      categoryColor="var(--cat-edit)" toolId="highlight-pdf"
-      steps={['Upload your PDF', 'Highlight text with your chosen color', 'Download the highlighted PDF']}
-    >
-      <SEO title="Highlight PDF — Free" description="Highlight PDF text. Free and private." path="/highlight-pdf" />
-      {!result ? (
-        <div className="tool-layout">
-          <FileDropZone onFiles={handleFiles} multiple={false} label="Drop PDF file here" sublabel="Upload a PDF to highlight" />
-          {file && pageImage && (
-            <div className="tool-section">
-              <div className="tool-section__header">
-                <h3 className="tool-section__title">Page {currentPage} of {pageCount}</h3>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button className="compress-level__preset" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage <= 1}>← Prev</button>
-                  <button className="compress-level__preset" onClick={() => setCurrentPage(p => Math.min(pageCount, p + 1))} disabled={currentPage >= pageCount}>Next →</button>
-                </div>
-              </div>
-              <div className="draw-toolbar">
-                <div className="draw-toolbar__colors">
-                  {HIGHLIGHT_COLORS.map(c => (
-                    <button key={c.id} className={`draw-color-btn ${hlColor === c.color ? 'active' : ''}`}
-                      style={{ backgroundColor: c.color }} onClick={() => setHlColor(c.color)} title={c.label} />
-                  ))}
-                </div>
-                <button className="compress-level__preset" onClick={clearPage}>Clear page</button>
-              </div>
-              <div className="draw-canvas-wrap">
-                <canvas ref={bgCanvasRef} className="draw-canvas draw-canvas--bg" />
-                <canvas ref={canvasRef} className="draw-canvas draw-canvas--fg"
-                  onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onMouseLeave={endDraw} />
-              </div>
-              <div className="tool-actions">
-                <ProcessButton onClick={handleApply} loading={loading} disabled={!file} label="Apply Highlights" loadingLabel="Applying…" />
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="tool-layout">
-          <DownloadBanner onDownload={handleDownload} onReset={reset}
-            filename={`${file.name.replace(/\.[^/.]+$/, '')}_highlighted.pdf`}
-            savedText={`Highlights applied to ${result.pageCount} pages`} />
-        </div>
-      )}
-    </ToolPageLayout>
+    <>
+      <Navbar />
+      <SEO title="Highlight PDF — Free" description="Highlight text in PDFs. Free and private." path="/highlight-pdf" />
+      <PDFEditorLayout
+        file={file} toolbar={toolbar}
+        canvasRef={canvasRef} bgCanvasRef={bgCanvasRef}
+        currentPage={currentPage}
+        setCurrentPage={(p) => setCurrentPage(typeof p === 'function' ? p(currentPage) : p)}
+        pageCount={pageCount}
+        redrawOverlay={redrawOverlay}
+        onCanvasMouseDown={handleMouseDown}
+        onCanvasMouseMove={handleMouseMove}
+        onCanvasMouseUp={handleMouseUp}
+        canvasCursor="crosshair"
+        onSave={handleSave}
+        onBack={() => navigate(-1)}
+        saveLabel="Save changes"
+        saveDisabled={totalStrokes === 0} loading={loading}
+        hint="Highlight text by dragging across it"
+      />
+    </>
   );
 }

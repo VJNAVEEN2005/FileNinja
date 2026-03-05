@@ -1,64 +1,71 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PDFDocument } from 'pdf-lib';
-import ToolPageLayout, { ProcessButton, DownloadBanner } from '../../components/shared/ToolPageLayout';
+import PDFEditorLayout from '../../components/shared/PDFEditorLayout';
 import FileDropZone from '../../components/shared/FileDropZone';
-import { fileToArrayBuffer, formatFileSize, downloadPdf, renderPageToDataUrl, getPageCount } from '../../utils/pdfUtils';
+import { fileToArrayBuffer, downloadPdf, getPageCount } from '../../utils/pdfUtils';
+import Navbar from '../../components/Navbar';
 import SEO from '../../components/SEO';
-import './ToolPage.css';
+import '../../components/shared/PDFEditor.css';
 
-const COLORS = ['#000000', '#e53e3e', '#3182ce', '#38a169', '#d69e2e', '#805ad5'];
-const SIZES = [2, 4, 6, 10, 16];
+const COLORS = [
+  { id: 'black', hex: '#000000' }, { id: 'red', hex: '#cc0000' },
+  { id: 'blue', hex: '#0044cc' }, { id: 'green', hex: '#008800' },
+  { id: 'orange', hex: '#ff6600' }, { id: 'purple', hex: '#7700aa' },
+];
+const SIZES = [2, 4, 6, 10];
 
 export default function DrawOnPDF() {
+  const navigate = useNavigate();
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
   const [pageCount, setPageCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageImage, setPageImage] = useState(null);
-  const [brushColor, setBrushColor] = useState('#e53e3e');
+
+  const [colorId, setColorId] = useState('black');
   const [brushSize, setBrushSize] = useState(4);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [drawings, setDrawings] = useState({}); // { pageNum: canvasDataUrl }
+
+  // strokes: { [page]: [ [{x,y}, ...], ... ] }
+  const strokesRef = useRef({});
+  const [strokesVersion, setStrokesVersion] = useState(0);
   const canvasRef = useRef(null);
   const bgCanvasRef = useRef(null);
+  const currentStroke = useRef([]);
+  const currentProps = useRef({ color: '#000000', size: 4 });
 
   const handleFiles = async (newFiles) => {
     if (newFiles.length > 0) {
-      const f = newFiles[0]; setFile(f); setResult(null); setDrawings({});
+      const f = newFiles[0];
+      setFile(f); strokesRef.current = {};
       const count = await getPageCount(f);
       setPageCount(count); setCurrentPage(1);
     }
   };
 
-  const loadPagePreview = useCallback(async () => {
-    if (!file) return;
-    const dataUrl = await renderPageToDataUrl(file, currentPage - 1, 1.5);
-    setPageImage(dataUrl);
-  }, [file, currentPage]);
+  const getStrokesForPage = (page) => strokesRef.current[page] || [];
 
-  useEffect(() => { loadPagePreview(); }, [loadPagePreview]);
-
-  // Set up canvas size when page image loads
-  useEffect(() => {
-    if (!pageImage || !canvasRef.current) return;
-    const img = new Image();
-    img.onload = () => {
-      const canvas = canvasRef.current;
-      const bgCanvas = bgCanvasRef.current;
-      canvas.width = img.width; canvas.height = img.height;
-      bgCanvas.width = img.width; bgCanvas.height = img.height;
-      const bgCtx = bgCanvas.getContext('2d');
-      bgCtx.drawImage(img, 0, 0);
-      // Restore previous drawing if exists
-      if (drawings[currentPage]) {
-        const drawImg = new Image();
-        drawImg.onload = () => { canvasRef.current.getContext('2d').drawImage(drawImg, 0, 0); };
-        drawImg.src = drawings[currentPage];
+  const redrawOverlay = useCallback(() => {
+    if (!canvasRef.current) return;
+    const ctx = canvasRef.current.getContext('2d');
+    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    const strokes = getStrokesForPage(currentPage);
+    for (const stroke of strokes) {
+      if (stroke.points.length < 2) continue;
+      ctx.strokeStyle = stroke.color;
+      ctx.lineWidth = stroke.size;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+      for (let i = 1; i < stroke.points.length; i++) {
+        ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
       }
-    };
-    img.src = pageImage;
-  }, [pageImage, currentPage, drawings]);
+      ctx.stroke();
+    }
+  }, [currentPage, strokesVersion]);
+
+  useEffect(() => { redrawOverlay(); }, [redrawOverlay]);
 
   const getPos = (e) => {
     const rect = canvasRef.current.getBoundingClientRect();
@@ -67,137 +74,181 @@ export default function DrawOnPDF() {
     return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
   };
 
-  const startDraw = (e) => {
+  const handleMouseDown = (e) => {
     setIsDrawing(true);
-    const ctx = canvasRef.current.getContext('2d');
     const pos = getPos(e);
-    ctx.beginPath(); ctx.moveTo(pos.x, pos.y);
-    ctx.strokeStyle = brushColor; ctx.lineWidth = brushSize;
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    const c = COLORS.find(cl => cl.id === colorId) || COLORS[0];
+    currentStroke.current = [pos];
+    currentProps.current = { color: c.hex, size: brushSize };
   };
 
-  const draw = (e) => {
+  const handleMouseMove = (e) => {
     if (!isDrawing) return;
-    const ctx = canvasRef.current.getContext('2d');
     const pos = getPos(e);
-    ctx.lineTo(pos.x, pos.y); ctx.stroke();
+    currentStroke.current.push(pos);
+    // Live draw
+    const ctx = canvasRef.current.getContext('2d');
+    const pts = currentStroke.current;
+    if (pts.length < 2) return;
+    ctx.strokeStyle = currentProps.current.color;
+    ctx.lineWidth = currentProps.current.size;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(pts[pts.length - 2].x, pts[pts.length - 2].y);
+    ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+    ctx.stroke();
   };
 
-  const endDraw = () => {
+  const handleMouseUp = () => {
     if (!isDrawing) return;
     setIsDrawing(false);
-    // Save drawing state
-    setDrawings(prev => ({ ...prev, [currentPage]: canvasRef.current.toDataURL() }));
+    if (currentStroke.current.length > 1) {
+      const page = currentPage;
+      if (!strokesRef.current[page]) strokesRef.current[page] = [];
+      strokesRef.current[page].push({
+        points: [...currentStroke.current],
+        color: currentProps.current.color,
+        size: currentProps.current.size,
+      });
+      setStrokesVersion(v => v + 1);
+    }
+    currentStroke.current = [];
   };
 
   const clearPage = () => {
-    const ctx = canvasRef.current.getContext('2d');
-    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-    setDrawings(prev => { const next = { ...prev }; delete next[currentPage]; return next; });
+    strokesRef.current[currentPage] = [];
+    setStrokesVersion(v => v + 1);
   };
 
-  const handleApply = async () => {
-    if (!file) return;
+  const undoLast = () => {
+    const strokes = strokesRef.current[currentPage];
+    if (strokes && strokes.length > 0) {
+      strokes.pop();
+      setStrokesVersion(v => v + 1);
+    }
+  };
+
+  const totalStrokes = Object.values(strokesRef.current).reduce((s, a) => s + a.length, 0);
+
+  const handleSave = async () => {
+    if (!file || totalStrokes === 0) return;
     setLoading(true);
     try {
-      const arrayBuffer = await fileToArrayBuffer(file);
+      const bytes = await fileToArrayBuffer(file);
       const pdfjsLib = await import('pdfjs-dist');
-      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).href;
-      const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+        'pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url
+      ).href;
+      const srcPdf = await pdfjsLib.getDocument({ data: bytes }).promise;
       const outDoc = await PDFDocument.create();
-      const scale = 2.0;
+      const previewScale = 1.5;
 
-      for (let i = 1; i <= pdfDoc.numPages; i++) {
-        const page = await pdfDoc.getPage(i);
-        const viewport = page.getViewport({ scale });
+      for (let i = 1; i <= pageCount; i++) {
+        const page = await srcPdf.getPage(i);
+        const viewport = page.getViewport({ scale: previewScale });
+
         const canvas = document.createElement('canvas');
-        canvas.width = Math.floor(viewport.width); canvas.height = Math.floor(viewport.height);
+        canvas.width = viewport.width; canvas.height = viewport.height;
         const ctx = canvas.getContext('2d');
         await page.render({ canvasContext: ctx, viewport }).promise;
 
-        // Overlay drawing if exists for this page
-        if (drawings[i]) {
-          const drawImg = await new Promise((resolve) => {
-            const img = new Image();
-            img.onload = () => resolve(img);
-            img.src = drawings[i];
-          });
-          // Scale drawing to match render canvas
-          ctx.drawImage(drawImg, 0, 0, canvas.width, canvas.height);
+        // Draw strokes
+        const strokes = getStrokesForPage(i);
+        for (const stroke of strokes) {
+          if (stroke.points.length < 2) continue;
+          ctx.strokeStyle = stroke.color;
+          ctx.lineWidth = stroke.size;
+          ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+          ctx.beginPath();
+          ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+          for (let j = 1; j < stroke.points.length; j++) ctx.lineTo(stroke.points[j].x, stroke.points[j].y);
+          ctx.stroke();
         }
 
         const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.92));
-        const jpegBytes = new Uint8Array(await blob.arrayBuffer());
-        const jpegImage = await outDoc.embedJpg(jpegBytes);
-        const origViewport = page.getViewport({ scale: 1 });
-        const outPage = outDoc.addPage([origViewport.width, origViewport.height]);
-        outPage.drawImage(jpegImage, { x: 0, y: 0, width: origViewport.width, height: origViewport.height });
+        const jpgBytes = new Uint8Array(await blob.arrayBuffer());
+        const jpgImage = await outDoc.embedJpg(jpgBytes);
+        const origVp = page.getViewport({ scale: 1 });
+        const outPage = outDoc.addPage([origVp.width, origVp.height]);
+        outPage.drawImage(jpgImage, { x: 0, y: 0, width: origVp.width, height: origVp.height });
       }
 
-      const outBytes = await outDoc.save({ useObjectStreams: true });
-      setResult({ bytes: outBytes, size: outBytes.byteLength, pageCount: pdfDoc.numPages });
-    } catch (err) { alert('Error applying drawings.'); console.error(err); }
+      const outBytes = await outDoc.save();
+      downloadPdf(outBytes, `${file.name.replace(/\.[^/.]+$/, '')}_draw.pdf`);
+    } catch (err) { alert('Error saving.'); console.error(err); }
     finally { setLoading(false); }
   };
 
-  const handleDownload = () => { if (result) downloadPdf(result.bytes, `${file.name.replace(/\.[^/.]+$/, '')}_drawn.pdf`); };
-  const reset = () => { setFile(null); setResult(null); setDrawings({}); setPageCount(0); };
+  if (!file) {
+    return (
+      <>
+        <Navbar />
+        <SEO title="Draw on PDF" description="Freehand draw on PDF pages. Free and private." path="/draw-on-pdf" />
+        <div style={{ maxWidth: 700, margin: '80px auto', padding: '0 20px' }}>
+          <a onClick={() => navigate(-1)} style={{ cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+            Back
+          </a>
+          <h1 style={{ fontSize: '1.8rem', marginBottom: 8 }}>Draw on PDF</h1>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>Freehand drawing and annotations on your PDF pages.</p>
+          <FileDropZone onFiles={handleFiles} multiple={false} label="Drop PDF file here" sublabel="Upload a PDF to draw on" />
+        </div>
+      </>
+    );
+  }
+
+  const toolbar = (
+    <>
+      <div className="editor-tool-group">
+        <span className="editor-tool-label">Color</span>
+        {COLORS.map(c => (
+          <button key={c.id} className={`editor-color-dot ${colorId === c.id ? 'active' : ''}`}
+            style={{ backgroundColor: c.hex }} onClick={() => setColorId(c.id)} title={c.id} />
+        ))}
+      </div>
+      <div className="editor-tool-group">
+        <span className="editor-tool-label">Size</span>
+        {SIZES.map(s => (
+          <button key={s} className={`editor-tool-btn ${brushSize === s ? 'active' : ''}`}
+            onClick={() => setBrushSize(s)} title={`${s}px`}>
+            <svg width="16" height="16"><circle cx="8" cy="8" r={Math.min(s, 7)} fill="currentColor"/></svg>
+          </button>
+        ))}
+      </div>
+      <div className="editor-tool-group">
+        <button className="editor-tool-btn" onClick={undoLast} title="Undo">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 105.64-11.36L1 10"/></svg>
+        </button>
+        <button className="editor-tool-btn" onClick={clearPage} title="Clear page">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </>
+  );
 
   return (
-    <ToolPageLayout title="Draw on PDF" description="Freehand drawing and annotations on your PDF pages."
-      categoryColor="var(--cat-edit)" toolId="draw-on-pdf"
-      steps={['Upload your PDF', 'Draw on the pages with your mouse', 'Download the annotated PDF']}
-    >
-      <SEO title="Draw on PDF — Free" description="Draw on PDF pages with freehand tools. Free and private." path="/draw-on-pdf" />
-      {!result ? (
-        <div className="tool-layout">
-          <FileDropZone onFiles={handleFiles} multiple={false} label="Drop PDF file here" sublabel="Upload a PDF to draw on" />
-          {file && pageImage && (
-            <div className="tool-section">
-              <div className="tool-section__header">
-                <h3 className="tool-section__title">Page {currentPage} of {pageCount}</h3>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button className="compress-level__preset" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage <= 1}>← Prev</button>
-                  <button className="compress-level__preset" onClick={() => setCurrentPage(p => Math.min(pageCount, p + 1))} disabled={currentPage >= pageCount}>Next →</button>
-                </div>
-              </div>
-
-              <div className="draw-toolbar">
-                <div className="draw-toolbar__colors">
-                  {COLORS.map(c => (
-                    <button key={c} className={`draw-color-btn ${brushColor === c ? 'active' : ''}`}
-                      style={{ backgroundColor: c }} onClick={() => setBrushColor(c)} />
-                  ))}
-                </div>
-                <div className="draw-toolbar__sizes">
-                  {SIZES.map(s => (
-                    <button key={s} className={`compress-level__preset ${brushSize === s ? 'active' : ''}`}
-                      onClick={() => setBrushSize(s)}>{s}px</button>
-                  ))}
-                </div>
-                <button className="compress-level__preset" onClick={clearPage}>Clear page</button>
-              </div>
-
-              <div className="draw-canvas-wrap">
-                <canvas ref={bgCanvasRef} className="draw-canvas draw-canvas--bg" />
-                <canvas ref={canvasRef} className="draw-canvas draw-canvas--fg"
-                  onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onMouseLeave={endDraw} />
-              </div>
-
-              <div className="tool-actions">
-                <ProcessButton onClick={handleApply} loading={loading} disabled={!file} label="Apply Drawings" loadingLabel="Applying…" />
-                <button className="tool-section__clear" onClick={reset}>Start over</button>
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="tool-layout">
-          <DownloadBanner onDownload={handleDownload} onReset={reset}
-            filename={`${file.name.replace(/\.[^/.]+$/, '')}_drawn.pdf`}
-            savedText={`Drawings applied to ${result.pageCount} pages`} />
-        </div>
-      )}
-    </ToolPageLayout>
+    <>
+      <Navbar />
+      <SEO title="Draw on PDF — Free" description="Freehand draw on PDF pages. Free and private." path="/draw-on-pdf" />
+      <PDFEditorLayout
+        file={file} toolbar={toolbar}
+        canvasRef={canvasRef} bgCanvasRef={bgCanvasRef}
+        currentPage={currentPage}
+        setCurrentPage={(p) => setCurrentPage(typeof p === 'function' ? p(currentPage) : p)}
+        pageCount={pageCount}
+        redrawOverlay={redrawOverlay}
+        onCanvasMouseDown={handleMouseDown}
+        onCanvasMouseMove={handleMouseMove}
+        onCanvasMouseUp={handleMouseUp}
+        canvasCursor="crosshair"
+        onSave={handleSave}
+        onBack={() => navigate(-1)}
+        saveLabel="Save changes"
+        saveDisabled={totalStrokes === 0}
+        loading={loading}
+        hint="Draw on the page with your mouse"
+      />
+    </>
   );
 }
