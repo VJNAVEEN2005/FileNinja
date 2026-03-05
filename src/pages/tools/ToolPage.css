@@ -94,6 +94,50 @@
   cursor: grabbing;
 }
 
+/* ─── Shared Navigation Buttons (Prev/Next) ─── */
+.tool-nav-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.tool-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.tool-nav-btn:hover:not(:disabled) {
+  border-color: var(--accent-coral);
+  color: var(--accent-coral);
+  background: rgba(255, 107, 74, 0.05);
+}
+
+.tool-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tool-nav-info {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  min-width: 100px;
+  text-align: center;
+}
+
 /* ─── Actions row ─── */
 .tool-actions {
   display: flex;

@@ -66,23 +66,23 @@ export const tools = [
     { id: 'certify-pdf', name: 'Certify PDF', desc: 'Add digital certificates for authenticity', category: 'security', icon: 'shield' },
 
     // ── AI Tools ──
-    { id: 'ai-summarize', name: 'AI Summarize', desc: 'Get an instant summary of any document', category: 'ai', icon: 'zap' },
-    { id: 'ai-translate', name: 'AI Translate', desc: 'Translate documents preserving layout', category: 'ai', icon: 'globe' },
-    { id: 'ai-chat', name: 'Chat with PDF', desc: 'Ask questions about your document', category: 'ai', icon: 'message-circle' },
-    { id: 'ai-extract', name: 'AI Extract Data', desc: 'Extract structured data from documents', category: 'ai', icon: 'database' },
-    { id: 'ai-fill-forms', name: 'AI Fill Forms', desc: 'Auto-detect and fill form fields', category: 'ai', icon: 'check-square' },
+    { id: 'ai-summarize', name: 'AI Summarize', desc: 'Get an instant summary of any document', category: 'ai', icon: 'zap', upcoming: true },
+    { id: 'ai-translate', name: 'AI Translate', desc: 'Translate documents preserving layout', category: 'ai', icon: 'globe', upcoming: true },
+    { id: 'ai-chat', name: 'Chat with PDF', desc: 'Ask questions about your document', category: 'ai', icon: 'message-circle', upcoming: true },
+    { id: 'ai-extract', name: 'AI Extract Data', desc: 'Extract structured data from documents', category: 'ai', icon: 'database', upcoming: true },
+    { id: 'ai-fill-forms', name: 'AI Fill Forms', desc: 'Auto-detect and fill form fields', category: 'ai', icon: 'check-square', upcoming: true },
 
     // ── Forms ──
-    { id: 'fill-form', name: 'Fill PDF Form', desc: 'Fill interactive PDF form fields', category: 'forms', icon: 'edit' },
-    { id: 'create-form', name: 'Create PDF Form', desc: 'Build interactive forms from scratch', category: 'forms', icon: 'plus-square' },
-    { id: 'flatten-form', name: 'Flatten Form', desc: 'Lock filled form fields permanently', category: 'forms', icon: 'check-circle' },
+    { id: 'fill-form', name: 'Fill PDF Form', desc: 'Fill interactive PDF form fields', category: 'forms', icon: 'edit', upcoming: true },
+    { id: 'create-form', name: 'Create PDF Form', desc: 'Build interactive forms from scratch', category: 'forms', icon: 'plus-square', upcoming: true },
+    { id: 'flatten-form', name: 'Flatten Form', desc: 'Lock filled form fields permanently', category: 'forms', icon: 'check-circle', upcoming: true },
 
     // ── Batch ──
-    { id: 'batch-convert', name: 'Batch Convert', desc: 'Convert multiple files at once', category: 'batch', icon: 'copy' },
-    { id: 'batch-compress', name: 'Batch Compress', desc: 'Compress multiple PDFs simultaneously', category: 'batch', icon: 'package' },
-    { id: 'batch-watermark', name: 'Batch Watermark', desc: 'Apply watermarks to multiple PDFs', category: 'batch', icon: 'droplets' },
-    { id: 'batch-rotate', name: 'Batch Rotate', desc: 'Rotate pages in multiple PDFs', category: 'batch', icon: 'refresh-cw' },
-    { id: 'batch-page-numbers', name: 'Batch Page Numbers', desc: 'Add page numbers to multiple PDFs', category: 'batch', icon: 'list' },
+    { id: 'batch-convert', name: 'Batch Convert', desc: 'Convert multiple files at once', category: 'batch', icon: 'copy', upcoming: true },
+    { id: 'batch-compress', name: 'Batch Compress', desc: 'Compress multiple PDFs simultaneously', category: 'batch', icon: 'package', upcoming: true },
+    { id: 'batch-watermark', name: 'Batch Watermark', desc: 'Apply watermarks to multiple PDFs', category: 'batch', icon: 'droplets', upcoming: true },
+    { id: 'batch-rotate', name: 'Batch Rotate', desc: 'Rotate pages in multiple PDFs', category: 'batch', icon: 'refresh-cw', upcoming: true },
+    { id: 'batch-page-numbers', name: 'Batch Page Numbers', desc: 'Add page numbers to multiple PDFs', category: 'batch', icon: 'list', upcoming: true },
 ];
 
 export function getToolsByCategory(categoryId) {

@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import ScrollToTop from './components/ScrollToTop';
 import Search from './components/Search';
 import HomePage from './pages/HomePage';
+import IntroAnimation from './components/IntroAnimation';
 import MergePDF from './pages/tools/MergePDF';
 import SplitPDF from './pages/tools/SplitPDF';
 import RemovePages from './pages/tools/RemovePages';
@@ -67,6 +68,7 @@ function App() {
 
   return (
     <>
+      <IntroAnimation />
       <ScrollToTop />
       
       <Routes>

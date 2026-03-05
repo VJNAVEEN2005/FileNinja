@@ -5,6 +5,23 @@ import './ToolCard.css';
 export default function ToolCard({ tool }) {
   const catColor = getCategoryColor(tool.category);
 
+  if (tool.upcoming) {
+    return (
+      <div
+        className="tool-card tool-card--upcoming"
+        style={{ '--card-accent': catColor }}
+      >
+        <div className="tool-card__badge" style={{ background: catColor }}>Upcoming</div>
+        <div className="tool-card__icon" style={{ color: catColor }}>
+          <div className="tool-card__icon-bg" style={{ backgroundColor: catColor, opacity: 0.12, position: 'absolute', inset: 0, borderRadius: 'inherit', transition: 'opacity 0.2s', zIndex: -1 }}></div>
+          <ToolIcon name={tool.icon} />
+        </div>
+        <h3 className="tool-card__title">{tool.name}</h3>
+        <p className="tool-card__desc">{tool.desc} (In development)</p>
+      </div>
+    );
+  }
+
   return (
     <Link
       to={`/tools/${tool.id}`}
