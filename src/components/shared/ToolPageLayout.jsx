@@ -3,12 +3,7 @@ import Navbar from '../Navbar';
 import Footer from '../Footer';
 import './ToolPageLayout.css';
 
-const relatedTools = {
-  'merge-pdf':    [{ id: 'split-pdf', name: 'Split PDF' }, { id: 'remove-pages', name: 'Remove Pages' }, { id: 'extract-pages', name: 'Extract Pages' }],
-  'split-pdf':    [{ id: 'merge-pdf', name: 'Merge PDF' }, { id: 'remove-pages', name: 'Remove Pages' }, { id: 'extract-pages', name: 'Extract Pages' }],
-  'remove-pages': [{ id: 'merge-pdf', name: 'Merge PDF' }, { id: 'split-pdf', name: 'Split PDF' }, { id: 'extract-pages', name: 'Extract Pages' }],
-  'extract-pages':[{ id: 'merge-pdf', name: 'Merge PDF' }, { id: 'split-pdf', name: 'Split PDF' }, { id: 'remove-pages', name: 'Remove Pages' }],
-};
+import { tools } from '../../data/toolsData';
 
 export default function ToolPageLayout({
   title,
@@ -18,7 +13,10 @@ export default function ToolPageLayout({
   steps = [],
   children,
 }) {
-  const related = relatedTools[toolId] || [];
+  const currentTool = tools.find(t => t.id === toolId);
+  const related = currentTool 
+    ? tools.filter(t => t.category === currentTool.category && t.id !== toolId).slice(0, 4)
+    : [];
 
   return (
     <>
@@ -81,7 +79,7 @@ export default function ToolPageLayout({
                 <div className="tpl__related">
                   <p className="tpl__related-label">Related tools</p>
                   {related.map(t => (
-                    <Link key={t.id} to={`/${t.id}`} className="tpl__related-link">
+                    <Link key={t.id} to={`/tools/${t.id}`} className="tpl__related-link">
                       {t.name}
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
                     </Link>

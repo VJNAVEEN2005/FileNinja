@@ -9,6 +9,20 @@ import RemovePages from './pages/tools/RemovePages';
 import ExtractPages from './pages/tools/ExtractPages';
 import OrganizePages from './pages/tools/OrganizePages';
 import RotatePDF from './pages/tools/RotatePDF';
+import CompressPDF from './pages/tools/CompressPDF';
+import FlattenPDF from './pages/tools/FlattenPDF';
+import RepairPDF from './pages/tools/RepairPDF';
+import OcrPDF from './pages/tools/OcrPDF';
+import AddText from './pages/tools/AddText';
+import AddImage from './pages/tools/AddImage';
+import DrawOnPDF from './pages/tools/DrawOnPDF';
+import HighlightPDF from './pages/tools/HighlightPDF';
+import AddWatermark from './pages/tools/AddWatermark';
+import AddPageNumbers from './pages/tools/AddPageNumbers';
+import AddHeaderFooter from './pages/tools/AddHeaderFooter';
+import CropPDF from './pages/tools/CropPDF';
+import RedactPDF from './pages/tools/RedactPDF';
+import EditMetadata from './pages/tools/EditMetadata';
 
 function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -37,6 +51,20 @@ function App() {
         <Route path="/tools/extract-pages" element={<ExtractPages />} />
         <Route path="/tools/organize-pages" element={<OrganizePages />} />
         <Route path="/tools/rotate-pdf" element={<RotatePDF />} />
+        <Route path="/tools/compress-pdf" element={<CompressPDF />} />
+        <Route path="/tools/flatten-pdf" element={<FlattenPDF />} />
+        <Route path="/tools/repair-pdf" element={<RepairPDF />} />
+        <Route path="/tools/ocr-pdf" element={<OcrPDF />} />
+        <Route path="/tools/add-text" element={<AddText />} />
+        <Route path="/tools/add-image" element={<AddImage />} />
+        <Route path="/tools/draw-on-pdf" element={<DrawOnPDF />} />
+        <Route path="/tools/highlight-pdf" element={<HighlightPDF />} />
+        <Route path="/tools/add-watermark" element={<AddWatermark />} />
+        <Route path="/tools/add-page-numbers" element={<AddPageNumbers />} />
+        <Route path="/tools/add-header-footer" element={<AddHeaderFooter />} />
+        <Route path="/tools/crop-pdf" element={<CropPDF />} />
+        <Route path="/tools/redact-pdf" element={<RedactPDF />} />
+        <Route path="/tools/edit-metadata" element={<EditMetadata />} />
       </Routes>
 
       {/* Global Search Modal */}

@@ -144,3 +144,75 @@ export function parsePageRanges(rangeStr, totalPages) {
     }
     return [...indices].sort((a, b) => a - b);
 }
+
+/**
+ * Compress a PDF by rasterizing pages to JPEG and re-embedding them.
+ *
+ * @param {File} file           – the source PDF file
+ * @param {number} level        – 0-100  (0 = lossless / structural only,
+ *                                        100 = maximum compression)
+ * @returns {Promise<Uint8Array>}  compressed PDF bytes
+ */
+export async function compressPdfLossy(file, level = 50) {
+    const arrayBuffer = await fileToArrayBuffer(file);
+
+    /* ── Level 0  →  lossless (structural only) ── */
+    if (level === 0) {
+        const doc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+        return doc.save({ useObjectStreams: true });
+    }
+
+    /* ── Lossy path: rasterize → JPEG → new PDF ── */
+
+    // Map level 1-100 to render scale and JPEG quality.
+    // Higher level  →  lower scale & lower quality  →  smaller file.
+    const scale = 2.0 - (level / 100) * 1.5;   // 2.0  → 0.5
+    const quality = 0.92 - (level / 100) * 0.55;  // 0.92 → 0.37
+
+    // Load with pdfjs-dist for rendering
+    const pdfjsLib = await import('pdfjs-dist');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+        'pdfjs-dist/build/pdf.worker.min.mjs',
+        import.meta.url
+    ).href;
+
+    const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const totalPages = pdfDoc.numPages;
+
+    // Create the output document with pdf-lib
+    const outDoc = await PDFDocument.create();
+
+    for (let i = 1; i <= totalPages; i++) {
+        const page = await pdfDoc.getPage(i);
+        const viewport = page.getViewport({ scale });
+
+        // Render to an off-screen canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.floor(viewport.width);
+        canvas.height = Math.floor(viewport.height);
+        const ctx = canvas.getContext('2d');
+        await page.render({ canvasContext: ctx, viewport }).promise;
+
+        // Convert canvas to JPEG blob
+        const blob = await new Promise(resolve =>
+            canvas.toBlob(resolve, 'image/jpeg', quality)
+        );
+        const jpegBytes = new Uint8Array(await blob.arrayBuffer());
+
+        // Embed the JPEG into the new PDF
+        const jpegImage = await outDoc.embedJpg(jpegBytes);
+
+        // Use the ORIGINAL page dimensions (not scaled) so the output
+        // print-size matches the source.
+        const origViewport = page.getViewport({ scale: 1 });
+        const outPage = outDoc.addPage([origViewport.width, origViewport.height]);
+        outPage.drawImage(jpegImage, {
+            x: 0,
+            y: 0,
+            width: origViewport.width,
+            height: origViewport.height,
+        });
+    }
+
+    return outDoc.save({ useObjectStreams: true });
+}
