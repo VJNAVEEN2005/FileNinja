@@ -95,7 +95,7 @@ export default function UnlockPDF() {
   return (
     <>
       <Navbar />
-      <SEO title="Unlock PDF" description="Remove password protection from your PDF files." path="/tools/unlock-pdf" />
+      <SEO title="Unlock PDF" description="Remove password protection from your PDF files." path="/unlock-pdf" />
       <ToolPageLayout
         title="Unlock PDF"
         description="Remove security and passwords from your PDF documents to make them accessible."

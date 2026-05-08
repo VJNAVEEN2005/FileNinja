@@ -86,7 +86,7 @@ export default function CertifyPDF() {
   return (
     <>
       <Navbar />
-      <SEO title="Certify PDF" description="Add digital certificates and authenticity stamps to your PDF." path="/tools/certify-pdf" />
+      <SEO title="Certify PDF" description="Add digital certificates and authenticity stamps to your PDF." path="/certify-pdf" />
       <ToolPageLayout
         title="Certify PDF"
         description="Verify document authenticity by adding a certification stamp and secure metadata."

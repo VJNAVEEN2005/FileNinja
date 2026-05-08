@@ -52,7 +52,7 @@ export default function ComparePDF() {
   return (
     <>
       <Navbar />
-      <SEO title="Compare PDF" description="Compare two PDF files side-by-side." path="/tools/compare-pdf" />
+      <SEO title="Compare PDF" description="Compare two PDF files side-by-side." path="/compare-pdf" />
       <ToolPageLayout
         title="Compare PDF"
         description="Visually compare two PDF documents side-by-side to find differences."

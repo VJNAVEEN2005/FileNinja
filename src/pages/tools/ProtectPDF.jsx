@@ -96,7 +96,7 @@ export default function ProtectPDF() {
   return (
     <>
       <Navbar />
-      <SEO title="Protect PDF" description="Add password encryption to your PDF document." path="/tools/protect-pdf" />
+      <SEO title="Protect PDF" description="Add password encryption to your PDF document." path="/protect-pdf" />
       <ToolPageLayout
         title="Protect PDF"
         description="Secure your PDF files with a password to prevent unauthorized access."

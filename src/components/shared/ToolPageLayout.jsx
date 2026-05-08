@@ -80,7 +80,7 @@ export default function ToolPageLayout({
                 <div className="tpl__related">
                   <p className="tpl__related-label">Related tools</p>
                   {related.map(t => (
-                    <Link key={t.id} to={`/tools/${t.id}`} className="tpl__related-link">
+                    <Link key={t.id} to={`/${t.id}`} className="tpl__related-link">
                       {t.name}
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
                     </Link>

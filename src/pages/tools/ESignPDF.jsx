@@ -132,7 +132,7 @@ export default function ESignPDF() {
   return (
     <>
       <Navbar />
-      <SEO title="eSign PDF" description="Sign your PDF documents online for free." path="/tools/esign-pdf" />
+      <SEO title="eSign PDF" description="Sign your PDF documents online for free." path="/esign-pdf" />
       <ToolPageLayout
         title="eSign PDF"
         description="Draw or upload your signature and place it anywhere on your PDF."

@@ -111,7 +111,7 @@ export default function Search({ isGlobal = false, isOpen: externalIsOpen, onClo
   };
 
   const handleSelect = (tool) => {
-    navigate(`/tools/${tool.id}`);
+    navigate(`/${tool.id}`);
     setQuery('');
     if (isGlobal && onClose) {
       onClose();

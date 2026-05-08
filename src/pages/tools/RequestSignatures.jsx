@@ -110,7 +110,7 @@ export default function RequestSignatures() {
   return (
     <>
       <Navbar />
-      <SEO title="Request Signatures" description="Prepare PDF documents for multi-party signing." path="/tools/request-signatures" />
+      <SEO title="Request Signatures" description="Prepare PDF documents for multi-party signing." path="/request-signatures" />
       <ToolPageLayout
         title="Request Signatures"
         description="Place signature tags on your document to guide recipients on where to sign."

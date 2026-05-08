@@ -75,56 +75,56 @@ function App() {
         <Route path="/" element={<HomePage />} />
         
         {/* Management Tools */}
-        <Route path="/tools/merge-pdf" element={<MergePDF />} />
-        <Route path="/tools/split-pdf" element={<SplitPDF />} />
-        <Route path="/tools/remove-pages" element={<RemovePages />} />
-        <Route path="/tools/extract-pages" element={<ExtractPages />} />
-        <Route path="/tools/organize-pages" element={<OrganizePages />} />
-        <Route path="/tools/rotate-pdf" element={<RotatePDF />} />
-        <Route path="/tools/compress-pdf" element={<CompressPDF />} />
+        <Route path="/merge-pdf" element={<MergePDF />} />
+        <Route path="/split-pdf" element={<SplitPDF />} />
+        <Route path="/remove-pages" element={<RemovePages />} />
+        <Route path="/extract-pages" element={<ExtractPages />} />
+        <Route path="/organize-pages" element={<OrganizePages />} />
+        <Route path="/rotate-pdf" element={<RotatePDF />} />
+        <Route path="/compress-pdf" element={<CompressPDF />} />
         
         {/* Optimization & Recovery */}
-        <Route path="/tools/flatten-pdf" element={<FlattenPDF />} />
-        <Route path="/tools/repair-pdf" element={<RepairPDF />} />
-        <Route path="/tools/ocr-pdf" element={<OcrPDF />} />
+        <Route path="/flatten-pdf" element={<FlattenPDF />} />
+        <Route path="/repair-pdf" element={<RepairPDF />} />
+        <Route path="/ocr-pdf" element={<OcrPDF />} />
         
         {/* Edit Tools */}
-        <Route path="/tools/add-text" element={<AddText />} />
-        <Route path="/tools/add-image" element={<AddImage />} />
-        <Route path="/tools/draw-on-pdf" element={<DrawOnPDF />} />
-        <Route path="/tools/highlight-pdf" element={<HighlightPDF />} />
-        <Route path="/tools/add-watermark" element={<AddWatermark />} />
-        <Route path="/tools/add-page-numbers" element={<AddPageNumbers />} />
-        <Route path="/tools/add-header-footer" element={<AddHeaderFooter />} />
-        <Route path="/tools/crop-pdf" element={<CropPDF />} />
-        <Route path="/tools/redact-pdf" element={<RedactPDF />} />
-        <Route path="/tools/edit-metadata" element={<EditMetadata />} />
+        <Route path="/add-text" element={<AddText />} />
+        <Route path="/add-image" element={<AddImage />} />
+        <Route path="/draw-on-pdf" element={<DrawOnPDF />} />
+        <Route path="/highlight-pdf" element={<HighlightPDF />} />
+        <Route path="/add-watermark" element={<AddWatermark />} />
+        <Route path="/add-page-numbers" element={<AddPageNumbers />} />
+        <Route path="/add-header-footer" element={<AddHeaderFooter />} />
+        <Route path="/crop-pdf" element={<CropPDF />} />
+        <Route path="/redact-pdf" element={<RedactPDF />} />
+        <Route path="/edit-metadata" element={<EditMetadata />} />
 
         {/* Conversion Tools */}
-        <Route path="/tools/word-to-pdf" element={<WordToPDF />} />
-        <Route path="/tools/excel-to-pdf" element={<ExcelToPDF />} />
-        <Route path="/tools/ppt-to-pdf" element={<PptToPDF />} />
-        <Route path="/tools/image-to-pdf" element={<ImageToPDF />} />
-        <Route path="/tools/html-to-pdf" element={<HtmlToPDF />} />
-        <Route path="/tools/text-to-pdf" element={<TextToPDF />} />
-        <Route path="/tools/csv-to-pdf" element={<CsvToPDF />} />
+        <Route path="/word-to-pdf" element={<WordToPDF />} />
+        <Route path="/excel-to-pdf" element={<ExcelToPDF />} />
+        <Route path="/ppt-to-pdf" element={<PptToPDF />} />
+        <Route path="/image-to-pdf" element={<ImageToPDF />} />
+        <Route path="/html-to-pdf" element={<HtmlToPDF />} />
+        <Route path="/text-to-pdf" element={<TextToPDF />} />
+        <Route path="/csv-to-pdf" element={<CsvToPDF />} />
 
         {/* Conversion FROM PDF Tools */}
-        <Route path="/tools/pdf-to-word" element={<PdfToWord />} />
-        <Route path="/tools/pdf-to-excel" element={<PdfToExcel />} />
-        <Route path="/tools/pdf-to-ppt" element={<PdfToPpt />} />
-        <Route path="/tools/pdf-to-jpg" element={<PdfToJpg />} />
-        <Route path="/tools/pdf-to-png" element={<PdfToPng />} />
-        <Route path="/tools/pdf-to-webp" element={<PdfToWebp />} />
-        <Route path="/tools/pdf-to-pdfa" element={<PdfToPdfA />} />
+        <Route path="/pdf-to-word" element={<PdfToWord />} />
+        <Route path="/pdf-to-excel" element={<PdfToExcel />} />
+        <Route path="/pdf-to-ppt" element={<PdfToPpt />} />
+        <Route path="/pdf-to-jpg" element={<PdfToJpg />} />
+        <Route path="/pdf-to-png" element={<PdfToPng />} />
+        <Route path="/pdf-to-webp" element={<PdfToWebp />} />
+        <Route path="/pdf-to-pdfa" element={<PdfToPdfA />} />
 
         {/* Security Tools */}
-        <Route path="/tools/protect-pdf" element={<ProtectPDF />} />
-        <Route path="/tools/unlock-pdf" element={<UnlockPDF />} />
-        <Route path="/tools/esign-pdf" element={<ESignPDF />} />
-        <Route path="/tools/request-signatures" element={<RequestSignatures />} />
-        <Route path="/tools/compare-pdf" element={<ComparePDF />} />
-        <Route path="/tools/certify-pdf" element={<CertifyPDF />} />
+        <Route path="/protect-pdf" element={<ProtectPDF />} />
+        <Route path="/unlock-pdf" element={<UnlockPDF />} />
+        <Route path="/esign-pdf" element={<ESignPDF />} />
+        <Route path="/request-signatures" element={<RequestSignatures />} />
+        <Route path="/compare-pdf" element={<ComparePDF />} />
+        <Route path="/certify-pdf" element={<CertifyPDF />} />
       </Routes>
 
       {/* Global Search Modal */}
